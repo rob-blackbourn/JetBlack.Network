@@ -1,0 +1,94 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JetBlack.Network", "JetBlack.Network\JetBlack.Network.csproj", "{E8EB4B80-AB0A-4FB4-B34E-692D8E4EE8A4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{052A8D46-9F8F-4D7D-AFFE-B56B993A9A23}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RxSocket", "RxSocket", "{4982163A-1A1A-4C50-AF86-3139809619A2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JetBlack.Examples.RxSocket.EchoClient", "JetBlack.Examples.RxSocket.EchoClient\JetBlack.Examples.RxSocket.EchoClient.csproj", "{AEDD9E51-39E2-4BB1-B121-B32F165308BA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JetBlack.Examples.RxSocket.EchoServer", "JetBlack.Examples.RxSocket.EchoServer\JetBlack.Examples.RxSocket.EchoServer.csproj", "{4F91CB32-4B6A-47B8-AA2F-3120621310CA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RxSocketSelect", "RxSocketSelect", "{2C069027-3C25-4E77-AE3F-4E3222C3666E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JetBlack.Examples.RxSocketSelect.EchoClient", "JetBlack.Examples.RxSocketSelect.EchoClient\JetBlack.Examples.RxSocketSelect.EchoClient.csproj", "{A634AED8-9157-4FA6-9500-5B395924DC60}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JetBlack.Examples.RxSocketSelect.EchoServer", "JetBlack.Examples.RxSocketSelect.EchoServer\JetBlack.Examples.RxSocketSelect.EchoServer.csproj", "{DD3CB8A5-E614-4A01-9FCD-FFA8563386D3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RxSocketStream", "RxSocketStream", "{FE953769-B2B0-4CED-9A10-AF212040A3C0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JetBlack.Examples.RxSocketStream.EchoClient", "JetBlack.Examples.RxSocketStream.EchoClient\JetBlack.Examples.RxSocketStream.EchoClient.csproj", "{81B0DAAC-39D7-4BEE-996C-CA07A66DD021}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JetBlack.Examples.RxSocketStream.EchoServer", "JetBlack.Examples.RxSocketStream.EchoServer\JetBlack.Examples.RxSocketStream.EchoServer.csproj", "{D6DD8360-879C-4B0D-AE57-EC567CCDF36E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RxTcp", "RxTcp", "{2455C355-99EC-4C7F-BCFB-5B55511E08B5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JetBlack.Examples.RxTcp.EchoClient", "JetBlack.Examples.RxTcp.EchoClient\JetBlack.Examples.RxTcp.EchoClient.csproj", "{51514522-AB66-4909-847F-A90DF236F574}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JetBlack.Examples.RxTcp.EchoServer", "JetBlack.Examples.RxTcp.EchoServer\JetBlack.Examples.RxTcp.EchoServer.csproj", "{6BD4C9FF-E7B4-434E-A7BC-52C146FA0F8B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E8EB4B80-AB0A-4FB4-B34E-692D8E4EE8A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E8EB4B80-AB0A-4FB4-B34E-692D8E4EE8A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E8EB4B80-AB0A-4FB4-B34E-692D8E4EE8A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E8EB4B80-AB0A-4FB4-B34E-692D8E4EE8A4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AEDD9E51-39E2-4BB1-B121-B32F165308BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AEDD9E51-39E2-4BB1-B121-B32F165308BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AEDD9E51-39E2-4BB1-B121-B32F165308BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AEDD9E51-39E2-4BB1-B121-B32F165308BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4F91CB32-4B6A-47B8-AA2F-3120621310CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4F91CB32-4B6A-47B8-AA2F-3120621310CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4F91CB32-4B6A-47B8-AA2F-3120621310CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4F91CB32-4B6A-47B8-AA2F-3120621310CA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A634AED8-9157-4FA6-9500-5B395924DC60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A634AED8-9157-4FA6-9500-5B395924DC60}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A634AED8-9157-4FA6-9500-5B395924DC60}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A634AED8-9157-4FA6-9500-5B395924DC60}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DD3CB8A5-E614-4A01-9FCD-FFA8563386D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD3CB8A5-E614-4A01-9FCD-FFA8563386D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD3CB8A5-E614-4A01-9FCD-FFA8563386D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD3CB8A5-E614-4A01-9FCD-FFA8563386D3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{81B0DAAC-39D7-4BEE-996C-CA07A66DD021}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81B0DAAC-39D7-4BEE-996C-CA07A66DD021}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81B0DAAC-39D7-4BEE-996C-CA07A66DD021}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81B0DAAC-39D7-4BEE-996C-CA07A66DD021}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6DD8360-879C-4B0D-AE57-EC567CCDF36E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6DD8360-879C-4B0D-AE57-EC567CCDF36E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6DD8360-879C-4B0D-AE57-EC567CCDF36E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6DD8360-879C-4B0D-AE57-EC567CCDF36E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51514522-AB66-4909-847F-A90DF236F574}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51514522-AB66-4909-847F-A90DF236F574}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51514522-AB66-4909-847F-A90DF236F574}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51514522-AB66-4909-847F-A90DF236F574}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6BD4C9FF-E7B4-434E-A7BC-52C146FA0F8B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6BD4C9FF-E7B4-434E-A7BC-52C146FA0F8B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6BD4C9FF-E7B4-434E-A7BC-52C146FA0F8B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6BD4C9FF-E7B4-434E-A7BC-52C146FA0F8B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4982163A-1A1A-4C50-AF86-3139809619A2} = {052A8D46-9F8F-4D7D-AFFE-B56B993A9A23}
+		{AEDD9E51-39E2-4BB1-B121-B32F165308BA} = {4982163A-1A1A-4C50-AF86-3139809619A2}
+		{4F91CB32-4B6A-47B8-AA2F-3120621310CA} = {4982163A-1A1A-4C50-AF86-3139809619A2}
+		{2C069027-3C25-4E77-AE3F-4E3222C3666E} = {052A8D46-9F8F-4D7D-AFFE-B56B993A9A23}
+		{A634AED8-9157-4FA6-9500-5B395924DC60} = {2C069027-3C25-4E77-AE3F-4E3222C3666E}
+		{DD3CB8A5-E614-4A01-9FCD-FFA8563386D3} = {2C069027-3C25-4E77-AE3F-4E3222C3666E}
+		{FE953769-B2B0-4CED-9A10-AF212040A3C0} = {052A8D46-9F8F-4D7D-AFFE-B56B993A9A23}
+		{81B0DAAC-39D7-4BEE-996C-CA07A66DD021} = {FE953769-B2B0-4CED-9A10-AF212040A3C0}
+		{D6DD8360-879C-4B0D-AE57-EC567CCDF36E} = {FE953769-B2B0-4CED-9A10-AF212040A3C0}
+		{2455C355-99EC-4C7F-BCFB-5B55511E08B5} = {052A8D46-9F8F-4D7D-AFFE-B56B993A9A23}
+		{51514522-AB66-4909-847F-A90DF236F574} = {2455C355-99EC-4C7F-BCFB-5B55511E08B5}
+		{6BD4C9FF-E7B4-434E-A7BC-52C146FA0F8B} = {2455C355-99EC-4C7F-BCFB-5B55511E08B5}
+	EndGlobalSection
+EndGlobal
