@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.ServiceModel.Channels;
 using System.Threading;
@@ -11,11 +12,15 @@ namespace JetBlack.Network.RxSocketStream
 {
     public static class FrameClientExtensions
     {
-        public static ISubject<DisposableByteBuffer, DisposableByteBuffer> ToFrameClientSubject(this IPEndPoint endpoint, BufferManager bufferManager, CancellationToken token)
+        public static IObservable<Socket> ToConnectObservable(this IPEndPoint endpoint)
         {
-            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            socket.Connect(endpoint);
-            return socket.ToFrameClientSubject(bufferManager, token);
+            return Observable.Create<Socket>(async (observer, token) =>
+            {
+                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                await socket.ConnectAsync(endpoint);
+                token.ThrowIfCancellationRequested();
+                observer.OnNext(socket);
+            });
         }
 
         public static ISubject<DisposableByteBuffer, DisposableByteBuffer> ToFrameClientSubject(this Socket socket, BufferManager bufferManager, CancellationToken token)
