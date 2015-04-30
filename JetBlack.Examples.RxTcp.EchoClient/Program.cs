@@ -50,6 +50,11 @@ namespace JetBlack.Examples.RxTcp.EchoClient
                     observerDisposable.Dispose();
 
                     cts.Cancel();
+                },
+                error =>
+                {
+                    Console.WriteLine("Failed to connect: " + error.Message);
+                    Environment.Exit(-1);
                 });
 
             cts.Token.WaitHandle.WaitOne();

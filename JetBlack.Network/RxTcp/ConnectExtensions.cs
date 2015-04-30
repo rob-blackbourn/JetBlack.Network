@@ -11,10 +11,17 @@ namespace JetBlack.Network.RxTcp
         {
             return Observable.Create<TcpClient>(async (observer, token) =>
             {
-                var client = new TcpClient();
-                await client.ConnectAsync(endpoint.Address, endpoint.Port);
-                token.ThrowIfCancellationRequested();
-                observer.OnNext(client);
+                try
+                {
+                    var client = new TcpClient();
+                    await client.ConnectAsync(endpoint.Address, endpoint.Port);
+                    token.ThrowIfCancellationRequested();
+                    observer.OnNext(client);
+                }
+                catch (Exception error)
+                {
+                    observer.OnError(error);
+                }
             });
         }
     }
