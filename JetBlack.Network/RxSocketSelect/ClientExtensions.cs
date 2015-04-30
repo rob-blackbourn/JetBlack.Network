@@ -47,22 +47,41 @@ namespace JetBlack.Network.RxSocketSelect
                     var state = new BufferState(buffer.Bytes, 0, buffer.Length);
 
                     // Try to write as much as possible without registering a callback.
-                    if (socket.Poll(0, SelectMode.SelectWrite) && socket.Send(socketFlags, state))
-                        return;
+                    try
+                    {
+                        state.Advance(socket.Send(state.Bytes, state.Offset, state.Length, socketFlags));
+                        if (state.Length == 0)
+                            return;
+                    }
+                    catch (Exception exception)
+                    {
+                        if (!exception.IsWouldBlock())
+                            throw;
+                    }
 
                     var waitEvent = new AutoResetEvent(false);
                     var waitHandles = new[] { token.WaitHandle, waitEvent };
+                    Exception error = null;
 
                     selector.AddCallback(SelectMode.SelectWrite, socket,
                         _ =>
                         {
                             try
                             {
-                                if (socket.Send(socketFlags, state))
+                                state.Advance(socket.Send(state.Bytes, state.Offset, state.Length, socketFlags));
+                                if (state.Length == 0)
+                                {
                                     selector.RemoveCallback(SelectMode.SelectWrite, socket);
+                                    waitEvent.Set();
+                                }
                             }
-                            finally
+                            catch (Exception exception)
                             {
+                                if (exception.IsWouldBlock())
+                                    return;
+
+                                error = exception;
+                                selector.RemoveCallback(SelectMode.SelectWrite, socket);
                                 waitEvent.Set();
                             }
                         });
@@ -71,6 +90,9 @@ namespace JetBlack.Network.RxSocketSelect
                     {
                         if (WaitHandle.WaitAny(waitHandles) == 0)
                             token.ThrowIfCancellationRequested();
+                        
+                        if (error != null)
+                            throw error;
                     }
                 });
         }

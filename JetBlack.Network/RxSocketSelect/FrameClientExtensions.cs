@@ -24,18 +24,27 @@ namespace JetBlack.Network.RxSocketSelect
             {
                 var header = BitConverter.GetBytes(disposableBuffer.Length);
                 var headerState = new BufferState(header, 0, header.Length);
-
                 var contentState = new BufferState(disposableBuffer.Bytes, 0, disposableBuffer.Length);
 
-                if (socket.Poll(0, SelectMode.SelectWrite) && socket.Send(socketFlags, headerState))
-                    if (socket.Poll(0, SelectMode.SelectWrite) && socket.Send(socketFlags, contentState))
-                    {
-                        disposableBuffer.Dispose();
+                try
+                {
+                    headerState.Advance(socket.Send(headerState.Bytes, headerState.Offset, headerState.Length, socketFlags));
+
+                    if (headerState.Length == 0)
+                        contentState.Advance(socket.Send(contentState.Bytes, contentState.Offset, contentState.Length, socketFlags));
+
+                    if (contentState.Length == 0)
                         return;
-                    }
+                }
+                catch (Exception exception)
+                {
+                    if (!exception.IsWouldBlock())
+                        throw exception;
+                }
 
                 var waitEvent = new AutoResetEvent(false);
                 var waitHandles = new[] { token.WaitHandle, waitEvent };
+                Exception error = null;
 
                 selector.AddCallback(SelectMode.SelectWrite, socket,
                     _ =>
@@ -43,13 +52,24 @@ namespace JetBlack.Network.RxSocketSelect
                         try
                         {
                             if (headerState.Length > 0)
-                                socket.Send(socketFlags, headerState);
+                                headerState.Advance(socket.Send(headerState.Bytes, headerState.Offset, headerState.Length, socketFlags));
 
-                            if (headerState.Length == 0 && socket.Send(socketFlags, contentState))
+                            if (headerState.Length == 0)
+                                contentState.Advance(socket.Send(contentState.Bytes, contentState.Offset, contentState.Length, socketFlags));
+
+                            if (contentState.Length == 0)
+                            {
                                 selector.RemoveCallback(SelectMode.SelectWrite, socket);
+                                waitEvent.Set();
+                            }
                         }
-                        finally
+                        catch (Exception exception)
                         {
+                            if (exception.IsWouldBlock())
+                                return;
+
+                            error = exception;
+                            selector.RemoveCallback(SelectMode.SelectWrite, socket);
                             waitEvent.Set();
                         }
                     });
@@ -58,6 +78,9 @@ namespace JetBlack.Network.RxSocketSelect
                 {
                     if (WaitHandle.WaitAny(waitHandles) == 0)
                         token.ThrowIfCancellationRequested();
+
+                    if (error != null)
+                        throw error;
                 }
 
                 disposableBuffer.Dispose();

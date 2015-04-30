@@ -58,7 +58,6 @@
     <Compile Include="RxSocketSelect\ListenerExtensions.cs" />
     <Compile Include="RxSocketSelect\Sockets\Selectable.cs" />
     <Compile Include="RxSocketSelect\Sockets\Selector.cs" />
-    <Compile Include="RxSocketSelect\Sockets\SocketExtensions.cs" />
     <Compile Include="RxSocketStream\ClientExtensions.cs" />
     <Compile Include="RxSocketStream\ConnectExtensions.cs" />
     <Compile Include="RxSocketStream\FrameClientExtensions.cs" />
