@@ -18,7 +18,7 @@ take and `IPEndPoint`. So you might do the following:
 
     new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9211)
         .ToListenerObservable(10)
-        .Subscribe(socket => DoDomething(socket));
+        .Subscribe(socket => DoSomething(socket));
 
 The `10` is the backlog.
 
@@ -29,7 +29,7 @@ extension methods which take a `Socket` or `TcpClient`. There is also an `ISubje
 reading and writing with the same object. So you might do the following:
 
     socket.ToClientObservable(1024)
-        .Subscribe(buffer => DoSomethingWithBuffer(buffer));
+        .Subscribe(buffer => DoSomething(buffer));
 
 The `ByteBuffer` class has a buffer and a length (the buffer may not be full). The `1024` argument was the size
 of the buffer to create. typically the extension method will also take a `CancellationToken` as an argument.
