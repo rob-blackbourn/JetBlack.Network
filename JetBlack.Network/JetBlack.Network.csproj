@@ -50,6 +50,7 @@
     <Compile Include="Common\DisposableByteBuffer.cs" />
     <Compile Include="Common\SocketEx.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RxSocketSelect\ConnectExtensions.cs" />
     <Compile Include="RxSocketSelect\Sockets\BufferState.cs" />
     <Compile Include="RxSocketSelect\Sockets\Checkable.cs" />
     <Compile Include="RxSocketSelect\ClientExtensions.cs" />
@@ -59,14 +60,17 @@
     <Compile Include="RxSocketSelect\Sockets\Selector.cs" />
     <Compile Include="RxSocketSelect\Sockets\SocketExtensions.cs" />
     <Compile Include="RxSocketStream\ClientExtensions.cs" />
+    <Compile Include="RxSocketStream\ConnectExtensions.cs" />
     <Compile Include="RxSocketStream\FrameClientExtensions.cs" />
     <Compile Include="RxSocketStream\ListenerExtensions.cs" />
     <Compile Include="Common\StreamExtensions.cs" />
     <Compile Include="RxSocket\ClientExtensions.cs" />
+    <Compile Include="RxSocket\ConnectExtensions.cs" />
     <Compile Include="RxSocket\FrameClientExtensions.cs" />
     <Compile Include="RxSocket\ListenerExtensions.cs" />
     <Compile Include="Common\SocketExtensions.cs" />
     <Compile Include="RxTcp\ClientExtensions.cs" />
+    <Compile Include="RxTcp\ConnectExtensions.cs" />
     <Compile Include="RxTcp\FrameClientExtensions.cs" />
     <Compile Include="RxTcp\ListenerExtensions.cs" />
   </ItemGroup>

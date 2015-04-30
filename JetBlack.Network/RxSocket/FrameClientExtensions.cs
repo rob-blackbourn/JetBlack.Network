@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Net;
 using System.Net.Sockets;
 using System.Reactive;
 using System.Reactive.Disposables;
@@ -13,16 +12,6 @@ namespace JetBlack.Network.RxSocket
 {
     public static class FrameClientExtensions
     {
-        public static IObservable<Socket> ToConnectObservable(this IPEndPoint endpoint)
-        {
-            return Observable.Create<Socket>(async (observer, token) =>
-            {
-                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                await socket.ConnectAsync(endpoint);
-                token.ThrowIfCancellationRequested();
-                observer.OnNext(socket);
-            });
-        }
 
         public static ISubject<DisposableByteBuffer, DisposableByteBuffer> ToFrameClientSubject(this Socket socket, SocketFlags socketFlags, BufferManager bufferManager, CancellationToken token)
         {
