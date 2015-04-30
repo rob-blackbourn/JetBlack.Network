@@ -2,7 +2,7 @@
 using System.IO;
 using System.Reactive.Linq;
 
-namespace JetBlack.Examples.RxTcp.EchoClient
+namespace JetBlack.Examples.Common
 {
     public static class TextReaderExtensions
     {

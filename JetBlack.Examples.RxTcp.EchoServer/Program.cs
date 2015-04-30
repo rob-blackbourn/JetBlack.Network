@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Net;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Threading;
+using JetBlack.Examples.Common;
 using JetBlack.Network.RxTcp;
 
 namespace JetBlack.Examples.RxTcp.EchoServer
@@ -11,16 +11,7 @@ namespace JetBlack.Examples.RxTcp.EchoServer
     {
         static void Main(string[] args)
         {
-            string[] splitArgs = null;
-            if (args.Length != 1 || (splitArgs = args[0].Split(new[] { ':' }, StringSplitOptions.RemoveEmptyEntries)).Length != 2)
-            {
-                Console.WriteLine("usage: EchoServer <hostname>:<port>");
-                Console.WriteLine("example:");
-                Console.WriteLine("    > EchoServer 127.0.0.1:9211");
-                Environment.Exit(-1);
-            }
-
-            var endpoint = new IPEndPoint(IPAddress.Parse(splitArgs[0]), int.Parse(splitArgs[1]));
+            var endpoint = ProgramArgs.Parse(args, new[] { "127.0.0.1:9211" }).EndPoint;
 
             var cts = new CancellationTokenSource();
 

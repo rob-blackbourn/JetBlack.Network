@@ -50,13 +50,16 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TextReaderExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\JetBlack.Examples.Common\JetBlack.Examples.Common.csproj">
+      <Project>{127b3f24-f22e-4d5d-8ef9-de067acfef55}</Project>
+      <Name>JetBlack.Examples.Common</Name>
+    </ProjectReference>
     <ProjectReference Include="..\JetBlack.Network\JetBlack.Network.csproj">
       <Project>{e8eb4b80-ab0a-4fb4-b34e-692d8e4ee8a4}</Project>
       <Name>JetBlack.Network</Name>
