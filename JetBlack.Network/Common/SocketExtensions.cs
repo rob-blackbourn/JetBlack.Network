@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,9 +12,9 @@ namespace JetBlack.Network.Common
             return await Task<Socket>.Factory.FromAsync(socket.BeginAccept, socket.EndAccept, null);
         }
 
-        public static async Task ConnectAsync(this Socket socket, string host, int port)
+        public static async Task ConnectAsync(this Socket socket, IPEndPoint endpoint)
         {
-            await Task.Factory.FromAsync((callback, state) => socket.BeginConnect(host, port, callback, state), ias => socket.EndConnect(ias), null);
+            await Task.Factory.FromAsync((callback, state) => socket.BeginConnect(endpoint, callback, state), ias => socket.EndConnect(ias), null);
         }
 
         public static async Task<int> SendAsync(this Socket socket, byte[] buffer, int offset, int size, SocketFlags flags)
