@@ -39,6 +39,15 @@ of the buffer to create. typically the extension method will also take a `Cancel
 Frame Clients follow the same pattern to the clients, but use a `DispoableByteBuffer` and send/receive the length
 of the buffer. This ensures the full message is received. They also take a `BufferManager` to reduce garbage collection.
 
+## Connectors
+
+The client connection can be performed asynchronously. ClientConnectors are `IObservable<Socket>` or `IObservable<TcpClient>` and
+are created by extension methods which take `IPEndPoint`. So you might do the following:
+
+    new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9211)
+        .ToConnectObservable()
+        .Subscribe(socket => DoSomething(socket));
+    
 ## Examples
 
 For each implementation there is an example echo client and server.
@@ -101,6 +110,34 @@ And the client looks like this:
     observerDisposable.Dispose();
 
     cts.Cancel();
+
+## Implementation
+
+### RxTcp
+
+This implementation is the most straightforward. The `TcpListener` and `TcpClient` classes have
+asynchronous methods which can be used with `await` when connecting and listening. The provide
+a `NetworkStream` which inherits asynchronous methods from `Stream`.
+
+### RxSocketStream
+
+This is almost as trivial as RxTcp as it uses the `Stream` based asynchornous methods for
+reading and writing. However it does need to implement the asynchronous `Task` pattern for listeneing and connect.
+
+    public static async Task<Socket> AcceptAsync(this Socket socket)
+    {
+        return await Task<Socket>.Factory.FromAsync(socket.BeginAccept, socket.EndAccept, null);
+    }
+
+### RxSocket
+
+This follows on from RxSocketStream by using asynchronous patterns for the sending and receiving.
+
+### RxSocketSelect
+
+This is the most convoluted implementation as it uses `Socket.Select` to provide the asynchronous behaviour.
+
+I implemented this as a challenge! but also to find out what the difference in performance was on Unix based systems using Mono.
 
 ## Wrap Up
 
