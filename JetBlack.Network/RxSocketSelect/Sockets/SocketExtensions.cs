@@ -4,7 +4,7 @@ using JetBlack.Network.Common;
 
 namespace JetBlack.Network.RxSocketSelect.Sockets
 {
-    public static class SocketExtensions
+    static class SocketExtensions
     {
         public static bool Send(this Socket socket, SocketFlags socketFlags, BufferState state)
         {

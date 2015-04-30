@@ -1,6 +1,6 @@
 ﻿namespace JetBlack.Network.RxSocketSelect.Sockets
 {
-    public class BufferState
+    class BufferState
     {
         public BufferState(byte[] bytes, int offset, int length)
         {
@@ -14,7 +14,7 @@
         public int Length { get; set; }
     }
 
-    public static class BufferStateExtensions
+    static class BufferStateExtensions
     {
         public static BufferState Advance(this BufferState bufferState, int count)
         {
