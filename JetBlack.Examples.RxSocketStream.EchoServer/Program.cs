@@ -18,7 +18,7 @@ namespace JetBlack.Examples.RxSocketStream.EchoServer
             var listener = endpoint.ToListenerObservable(10);
 
             listener
-                .SubscribeOn(TaskPoolScheduler.Default)
+                .ObserveOn(TaskPoolScheduler.Default)
                 .Subscribe(
                     client =>
                         client.ToClientObservable(1024)

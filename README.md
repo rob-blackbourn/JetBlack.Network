@@ -56,7 +56,7 @@ For the RxSocket implementation the server looks like this:
         .Subscribe(
             client =>
                 client.ToClientObservable(1024, SocketFlags.None)
-                    .SubscribeOn(TaskPoolScheduler.Default)
+                    .ObserveOn(TaskPoolScheduler.Default)
                     .Subscribe(client.ToClientObserver(1024, SocketFlags.None), cts.Token),
             error => Console.WriteLine("Error: " + error.Message),
             () => Console.WriteLine("OnCompleted"),
@@ -78,7 +78,7 @@ And the client looks like this:
 
     var observerDisposable =
         frameClientSubject
-            .SubscribeOn(TaskPoolScheduler.Default)
+            .ObserveOn(TaskPoolScheduler.Default)
             .Subscribe(
                 managedBuffer =>
                 {

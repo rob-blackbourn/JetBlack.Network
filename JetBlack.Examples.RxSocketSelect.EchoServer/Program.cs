@@ -22,7 +22,7 @@ namespace JetBlack.Examples.RxSocketSelect.EchoServer
             var listener = endpoint.ToListenerObservable(10, selector);
 
             listener
-                .SubscribeOn(TaskPoolScheduler.Default)
+                .ObserveOn(TaskPoolScheduler.Default)
                 .Subscribe(
                     client =>
                         client.ToClientObservable(1024, SocketFlags.None, selector)

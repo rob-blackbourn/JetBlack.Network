@@ -24,7 +24,7 @@ namespace JetBlack.Examples.RxTcp.EchoClient
 
             var observerDisposable =
                 frameClientSubject
-                    .SubscribeOn(TaskPoolScheduler.Default)
+                    .ObserveOn(TaskPoolScheduler.Default)
                     .Subscribe(
                         disposableBuffer =>
                         {
