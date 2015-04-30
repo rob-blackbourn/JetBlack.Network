@@ -32,7 +32,7 @@ namespace JetBlack.Examples.RxSocketSelect.EchoServer
                     () => Console.WriteLine("OnCompleted"),
                     cts.Token);
 
-            Task.Factory.StartNew(() => selector.Start(60000000, cts.Token), cts.Token);
+            Task.Factory.StartNew(() => selector.Dispatch(60000000, cts.Token), cts.Token);
 
             Console.WriteLine("Press <ENTER> to quit");
             Console.ReadLine();

@@ -24,7 +24,7 @@ namespace JetBlack.Examples.RxSocketSelect.EchoClient
             var bufferManager = BufferManager.CreateBufferManager(2 << 16, 2 << 8);
 
             var selector = new Selector();
-            Task.Factory.StartNew(() => selector.Start(60000000, cts.Token), cts.Token);
+            Task.Factory.StartNew(() => selector.Dispatch(60000000, cts.Token), cts.Token);
 
             var frameClientSubject = endpoint.ToFrameClientSubject(SocketFlags.None, bufferManager, selector, cts.Token);
 

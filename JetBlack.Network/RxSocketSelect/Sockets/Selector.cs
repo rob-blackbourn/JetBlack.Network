@@ -38,7 +38,7 @@ namespace JetBlack.Network.RxSocketSelect.Sockets
             _selectable.RemoveCallback(mode, socket);
         }
 
-        public void Start(int microSeconds, CancellationToken token)
+        public void Dispatch(int microSeconds, CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {
