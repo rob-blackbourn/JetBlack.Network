@@ -52,7 +52,12 @@ namespace JetBlack.Examples.RxSocket.EchoClient
                     observerDisposable.Dispose();
 
                     cts.Cancel();
-                }, cts.Token);
+                }, 
+                error =>
+                {
+                    Console.WriteLine("Failed to connect: " + error.Message);
+                },
+                cts.Token);
 
             cts.Token.WaitHandle.WaitOne();
         }

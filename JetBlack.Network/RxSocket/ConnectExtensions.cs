@@ -12,10 +12,17 @@ namespace JetBlack.Network.RxSocket
         {
             return Observable.Create<Socket>(async (observer, token) =>
             {
-                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                await socket.ConnectAsync(endpoint);
-                token.ThrowIfCancellationRequested();
-                observer.OnNext(socket);
+                try
+                {
+                    var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    await socket.ConnectAsync(endpoint);
+                    token.ThrowIfCancellationRequested();
+                    observer.OnNext(socket);
+                }
+                catch (Exception error)
+                {
+                    observer.OnError(error);
+                }
             });
         }
     }
