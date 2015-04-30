@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.ServiceModel.Channels;
 using System.Threading;
@@ -10,11 +11,15 @@ namespace JetBlack.Network.RxTcp
 {
     public static class FrameClientExtensions
     {
-        public static ISubject<DisposableByteBuffer, DisposableByteBuffer> ToFrameClientSubject(this IPEndPoint endpoint, BufferManager bufferManager, CancellationToken token)
+        public static IObservable<TcpClient> ToConnectObservable(this IPEndPoint endpoint)
         {
-            var client = new TcpClient();
-            client.Connect(endpoint);
-            return client.ToFrameClientSubject(bufferManager, token);
+            return Observable.Create<TcpClient>(async (observer, token) =>
+            {
+                var client = new TcpClient();
+                await client.ConnectAsync(endpoint.Address, endpoint.Port);
+                token.ThrowIfCancellationRequested();
+                observer.OnNext(client);
+            });
         }
 
         public static ISubject<DisposableByteBuffer, DisposableByteBuffer> ToFrameClientSubject(this TcpClient client, BufferManager bufferManager, CancellationToken token)

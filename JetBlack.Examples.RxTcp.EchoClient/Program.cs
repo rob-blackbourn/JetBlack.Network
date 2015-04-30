@@ -20,33 +20,39 @@ namespace JetBlack.Examples.RxTcp.EchoClient
             var cts = new CancellationTokenSource();
             var bufferManager = BufferManager.CreateBufferManager(2 << 16, 2 << 8);
 
-            var frameClientSubject = endpoint.ToFrameClientSubject(bufferManager, cts.Token);
+            endpoint.ToConnectObservable()
+                .Subscribe(client =>
+                {
+                    var frameClientSubject = client.ToFrameClientSubject(bufferManager, cts.Token);
 
-            var observerDisposable =
-                frameClientSubject
-                    .ObserveOn(TaskPoolScheduler.Default)
-                    .Subscribe(
-                        disposableBuffer =>
-                        {
-                            Console.WriteLine("Read: " + Encoding.UTF8.GetString(disposableBuffer.Bytes, 0, disposableBuffer.Length));
-                            disposableBuffer.Dispose();
-                        },
-                        error => Console.WriteLine("Error: " + error.Message),
-                        () => Console.WriteLine("OnCompleted: FrameReceiver"));
+                    var observerDisposable =
+                        frameClientSubject
+                            .ObserveOn(TaskPoolScheduler.Default)
+                            .Subscribe(
+                                disposableBuffer =>
+                                {
+                                    Console.WriteLine("Read: " + Encoding.UTF8.GetString(disposableBuffer.Bytes, 0, disposableBuffer.Length));
+                                    disposableBuffer.Dispose();
+                                },
+                                error => Console.WriteLine("Error: " + error.Message),
+                                () => Console.WriteLine("OnCompleted: FrameReceiver"));
 
-            Console.In.ToLineObservable()
-                .Subscribe(
-                    line =>
-                    {
-                        var writeBuffer = Encoding.UTF8.GetBytes(line);
-                        frameClientSubject.OnNext(new DisposableByteBuffer(writeBuffer, writeBuffer.Length, Disposable.Empty));
-                    },
-                    error => Console.WriteLine("Error: " + error.Message),
-                    () => Console.WriteLine("OnCompleted: LineReader"));
+                    Console.In.ToLineObservable()
+                        .Subscribe(
+                            line =>
+                            {
+                                var writeBuffer = Encoding.UTF8.GetBytes(line);
+                                frameClientSubject.OnNext(new DisposableByteBuffer(writeBuffer, writeBuffer.Length, Disposable.Empty));
+                            },
+                            error => Console.WriteLine("Error: " + error.Message),
+                            () => Console.WriteLine("OnCompleted: LineReader"));
 
-            observerDisposable.Dispose();
+                    observerDisposable.Dispose();
 
-            cts.Cancel();
+                    cts.Cancel();
+                });
+
+            cts.Token.WaitHandle.WaitOne();
         }
     }
 }
