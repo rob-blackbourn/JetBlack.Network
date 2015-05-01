@@ -39,7 +39,7 @@ namespace JetBlack.Network.RxSocketSelect
                 catch (Exception exception)
                 {
                     if (!exception.IsWouldBlock())
-                        throw exception;
+                        throw;
                 }
 
                 var waitEvent = new AutoResetEvent(false);
@@ -94,7 +94,9 @@ namespace JetBlack.Network.RxSocketSelect
                 var headerState = new BufferState(new byte[sizeof(int)], 0, sizeof(int));
                 var contentState = new BufferState(null, 0, -1);
 
-                selector.AddCallback(SelectMode.SelectRead, socket, _ =>
+                var selectMode = socketFlags.HasFlag(SocketFlags.OutOfBand) ? SelectMode.SelectError : SelectMode.SelectRead;
+
+                selector.AddCallback(selectMode, socket, _ =>
                 {
                     try
                     {
