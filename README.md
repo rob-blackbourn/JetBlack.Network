@@ -191,7 +191,7 @@ I have implemented two readers and writers. One for bytes, and another for
 "frames" which are discussed below. Note that when byte arrays are sent and
 received they may be fragmented (split into separate blocks).
 
-It is often more efficient to managed the byte arrays in a pool. When we do
+It is often more efficient to manage the byte arrays in a pool. When we do
 this the buffers may be larger than the payload, so I use a trivial class
 to hold the byte array and payload length.
 
@@ -270,8 +270,9 @@ Note that the number of bytes read may be less than the size of the buffer.
 
 The client is used in the echo server examples to read from the socket and write
 it back to the client. The server doesn't need to know anything about the
-message size or content so the client implementations are ideal. Here is a
-slightly simplified version of the code.
+message size or content so the client implementations are ideal. It simply
+forwards what it receives back to the client. Here is a slightly simplified
+version of the code.
 
     endpoint.ToListenerObservable(10)
         .ObserveOn(TaskPoolScheduler.Default)
