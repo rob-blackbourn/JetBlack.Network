@@ -1,13 +1,13 @@
 # JetBlack.Network
 
-An experiment in using reactive extensions with network sockets.
+An experiment in using reactive extensions with network sockets over TCP.
 
 Four versions are implemented:
 
-1.  Use Socket as the driving class with BeginReceive/EndReceive and BeginSend/EndSend.
-2.  Use socket as the driving class with non-blocking sockets and select.
-3.  Use Socket as the driving class with asynchronous stream methods.
-4.  Use TcpListener/TcpClient classes with asynchronous stream methods.
+1.  Use TcpListener/TcpClient classes with asynchronous listen, connect, and stream methods.
+2.  Use Socket as the driving class providing asynchronous listen and connect methods, but using with asynchronous stream methods.
+3.  Use Socket as the driving class providing asynchronous methods for listen, connect, send and receive.
+4.  Use socket as the driving class with non-blocking sockets and a select loop.
 
 ## Description
 
@@ -25,7 +25,7 @@ The `10` is the backlog.
 ### Clients
 
 Clients read with an `IObservable<ByteBuffer>` and write with an `IObserver<ByteBuffer>` and are created by
-extension methods which take a `Socket` or `TcpClient`. There is also an `ISubject<ByteBuffer,ByteBuffer>` for
+extension methods which take a `Socket` or `TcpClient`. There is also an `ISubject<ByteBuffer, ByteBuffer>` for
 reading and writing with the same object. So you might do the following:
 
     socket.ToClientObservable(1024)
@@ -118,6 +118,108 @@ And the client looks like this:
 This implementation is the most straightforward. The `TcpListener` and `TcpClient` classes have
 asynchronous methods which can be used with `await` when connecting and listening. The provide
 a `NetworkStream` which inherits asynchronous methods from `Stream`.
+
+The listen is implemented in the following manner:
+
+    public static IObservable<TcpClient> ToListenerObservable(this IPEndPoint endpoint, int backlog)
+    {
+        var listener = new TcpListener(endpoint);
+        return listener.ToListenerObservable(10);
+    }
+
+    public static IObservable<TcpClient> ToListenerObservable(this TcpListener listener, int backlog)
+    {
+        return Observable.Create<TcpClient>(async (observer, token) =>
+        {
+            listener.Start(backlog);
+
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    var client = await listener.AcceptTcpClientAsync();
+                    if (client == null)
+                        break;
+
+                    observer.OnNext(client);
+                }
+
+                observer.OnCompleted();
+
+                listener.Stop();
+            }
+            catch (Exception error)
+            {
+                observer.OnError(error);
+            }
+        });
+    }
+
+Connect is more trivial:
+
+    public static IObservable<TcpClient> ToConnectObservable(this IPEndPoint endpoint)
+    {
+        return Observable.Create<TcpClient>(async (observer, token) =>
+        {
+            var client = new TcpClient();
+            await client.ConnectAsync(endpoint.Address, endpoint.Port);
+            token.ThrowIfCancellationRequested();
+            observer.OnNext(client);
+        });
+    }
+
+The clients are thin wrappers around the streams:
+
+    public static ISubject<ByteBuffer, ByteBuffer> ToClientSubject(this TcpClient client, int size, CancellationToken token)
+    {
+        return Subject.Create(client.ToClientObserver(token), client.ToClientObservable(size));
+    }
+
+    public static IObservable<ByteBuffer> ToClientObservable(this TcpClient client, int size)
+    {
+        return client.GetStream().ToStreamObservable(size);
+    }
+
+    public static IObserver<ByteBuffer> ToClientObserver(this TcpClient client, CancellationToken token)
+    {
+        return client.GetStream().ToStreamObserver(token);
+    }
+
+The streams follow a simple pattern:
+
+    public static IObservable<ByteBuffer> ToStreamObservable(this Stream stream, int size)
+    {
+        return Observable.Create<ByteBuffer>(async (observer, token) =>
+        {
+            var buffer = new byte[size];
+
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    var received = await stream.ReadAsync(buffer, 0, size, token);
+                    if (received == 0)
+                        break;
+
+                    observer.OnNext(new ByteBuffer(buffer, received));
+                }
+
+                observer.OnCompleted();
+            }
+            catch (Exception error)
+            {
+                observer.OnError(error);
+            }
+        });
+    }
+
+    public static IObserver<ByteBuffer> ToStreamObserver(this Stream stream, CancellationToken token)
+    {
+        return Observer.Create<ByteBuffer>(async buffer =>
+        {
+            await stream.WriteAsync(buffer.Bytes, 0, buffer.Length, token);
+        });
+    }
 
 ### RxSocketStream
 
