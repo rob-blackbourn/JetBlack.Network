@@ -11,10 +11,13 @@ Four versions are implemented:
 
 ## Description
 
-### Listeners
+### Listening
 
-Listeners are `IObservable<TcpClient>` or `IObservable<Socket>` and are created by extension methods which
-take and `IPEndPoint`. So you might do the following:
+The natural approach for a listener would be to subscribe an endpoint, and
+receive clients as they connect. This is achieved by an extension method
+`ToListenerObservable` which produces an observable of the form:
+`IObservable<TcpClient>` or `IObservable<Socket>`. So you might do the
+following:
 
     new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9211)
         .ToListenerObservable(10)
@@ -115,6 +118,8 @@ And the client looks like this:
 
 ### RxTcp
 
+#### Listening
+
 This implementation is the most straightforward. The `TcpListener` and `TcpClient` classes have
 asynchronous methods which can be used with `await` when connecting and listening. The provide
 a `NetworkStream` which inherits asynchronous methods from `Stream`.
@@ -155,6 +160,8 @@ The listen is implemented in the following manner:
         });
     }
 
+#### Connecting
+
 Connect is more trivial:
 
     public static IObservable<TcpClient> ToConnectObservable(this IPEndPoint endpoint)
@@ -167,6 +174,8 @@ Connect is more trivial:
             observer.OnNext(client);
         });
     }
+
+#### Reading and writing
 
 The clients are thin wrappers around the streams:
 
