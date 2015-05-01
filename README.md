@@ -33,8 +33,10 @@ Clients read with an `IObservable<ByteBuffer>` and write with an `IObserver<Byte
 extension methods which take a `Socket` or `TcpClient`. There is also an `ISubject<ByteBuffer, ByteBuffer>` for
 reading and writing with the same object. So you might do the following:
 
-    socket.ToClientObservable(1024)
-        .Subscribe(buffer => DoSomething(buffer));
+```cs
+socket.ToClientObservable(1024)
+    .Subscribe(buffer => DoSomething(buffer));
+```
 
 The `ByteBuffer` class has a buffer and a length (the buffer may not be full). The `1024` argument was the size
 of the buffer to create. typically the extension method will also take a `CancellationToken` as an argument.
@@ -49,9 +51,11 @@ of the buffer. This ensures the full message is received. They also take a `Buff
 The client connection can be performed asynchronously. ClientConnectors are `IObservable<Socket>` or `IObservable<TcpClient>` and
 are created by extension methods which take `IPEndPoint`. So you might do the following:
 
-    new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9211)
-        .ToConnectObservable()
-        .Subscribe(socket => DoSomething(socket));
+```cs
+new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9211)
+    .ToConnectObservable()
+    .Subscribe(socket => DoSomething(socket));
+```
     
 ## Examples
 
@@ -59,62 +63,64 @@ For each implementation there is an example echo client and server.
 
 For the RxSocket implementation the server looks like this:
 
-    var endpoint = ProgramArgs.Parse(args, new[] { "127.0.0.1:9211" }).EndPoint;
+```cs
+var endpoint = ProgramArgs.Parse(args, new[] { "127.0.0.1:9211" }).EndPoint;
 
-    var cts = new CancellationTokenSource();
+var cts = new CancellationTokenSource();
 
-    var listener = endpoint.ToListenerObservable(10);
+var listener = endpoint.ToListenerObservable(10);
 
-    listener
-        .SubscribeOn(TaskPoolScheduler.Default)
-        .Subscribe(
-            client =>
-                client.ToClientObservable(1024, SocketFlags.None)
-                    .ObserveOn(TaskPoolScheduler.Default)
-                    .Subscribe(client.ToClientObserver(1024, SocketFlags.None), cts.Token),
-            error => Console.WriteLine("Error: " + error.Message),
-            () => Console.WriteLine("OnCompleted"),
-            cts.Token);
+listener
+    .SubscribeOn(TaskPoolScheduler.Default)
+    .Subscribe(
+        client =>
+            client.ToClientObservable(1024, SocketFlags.None)
+                .ObserveOn(TaskPoolScheduler.Default)
+                .Subscribe(client.ToClientObserver(1024, SocketFlags.None), cts.Token),
+        error => Console.WriteLine("Error: " + error.Message),
+        () => Console.WriteLine("OnCompleted"),
+        cts.Token);
 
-    Console.WriteLine("Press <ENTER> to quit");
-    Console.ReadLine();
+Console.WriteLine("Press <ENTER> to quit");
+Console.ReadLine();
 
-    cts.Cancel();
+cts.Cancel();
 
 And the client looks like this:
 
-    var endpoint = ProgramArgs.Parse(args, new[] { "127.0.0.1:9211" }).EndPoint;
+var endpoint = ProgramArgs.Parse(args, new[] { "127.0.0.1:9211" }).EndPoint;
 
-    var cts = new CancellationTokenSource();
-    var bufferManager = BufferManager.CreateBufferManager(2 << 16, 2 << 8);
+var cts = new CancellationTokenSource();
+var bufferManager = BufferManager.CreateBufferManager(2 << 16, 2 << 8);
 
-    var frameClientSubject = endpoint.ToFrameClientSubject(SocketFlags.None, bufferManager, cts.Token);
+var frameClientSubject = endpoint.ToFrameClientSubject(SocketFlags.None, bufferManager, cts.Token);
 
-    var observerDisposable =
-        frameClientSubject
-            .ObserveOn(TaskPoolScheduler.Default)
-            .Subscribe(
-                managedBuffer =>
-                {
-                    Console.WriteLine("Read: " + Encoding.UTF8.GetString(managedBuffer.Bytes, 0, managedBuffer.Length));
-                    managedBuffer.Dispose();
-                },
-                error => Console.WriteLine("Error: " + error.Message),
-                () => Console.WriteLine("OnCompleted: FrameReceiver"));
-
-    Console.In.ToLineObservable()
+var observerDisposable =
+    frameClientSubject
+        .ObserveOn(TaskPoolScheduler.Default)
         .Subscribe(
-            line =>
+            managedBuffer =>
             {
-                var writeBuffer = Encoding.UTF8.GetBytes(line);
-                frameClientSubject.OnNext(new DisposableByteBuffer(writeBuffer, writeBuffer.Length, Disposable.Empty));
+                Console.WriteLine("Read: " + Encoding.UTF8.GetString(managedBuffer.Bytes, 0, managedBuffer.Length));
+                managedBuffer.Dispose();
             },
             error => Console.WriteLine("Error: " + error.Message),
-            () => Console.WriteLine("OnCompleted: LineReader"));
+            () => Console.WriteLine("OnCompleted: FrameReceiver"));
 
-    observerDisposable.Dispose();
+Console.In.ToLineObservable()
+    .Subscribe(
+        line =>
+        {
+            var writeBuffer = Encoding.UTF8.GetBytes(line);
+            frameClientSubject.OnNext(new DisposableByteBuffer(writeBuffer, writeBuffer.Length, Disposable.Empty));
+        },
+        error => Console.WriteLine("Error: " + error.Message),
+        () => Console.WriteLine("OnCompleted: LineReader"));
 
-    cts.Cancel();
+observerDisposable.Dispose();
+
+cts.Cancel();
+```
 
 ## Implementation
 
@@ -128,32 +134,34 @@ a `NetworkStream` which implement asynchronous methods declared by `Stream`.
 
 The listen is implemented in the following manner:
 
-    public static IObservable<TcpClient> ToListenerObservable(this IPEndPoint endpoint, int backlog)
-    {
-        return new TcpListener(endpoint).ToListenerObservable(backlog);
-    }
+```cs
+public static IObservable<TcpClient> ToListenerObservable(this IPEndPoint endpoint, int backlog)
+{
+    return new TcpListener(endpoint).ToListenerObservable(backlog);
+}
 
-    public static IObservable<TcpClient> ToListenerObservable(this TcpListener listener, int backlog)
+public static IObservable<TcpClient> ToListenerObservable(this TcpListener listener, int backlog)
+{
+    return Observable.Create<TcpClient>(async (observer, token) =>
     {
-        return Observable.Create<TcpClient>(async (observer, token) =>
+        listener.Start(backlog);
+
+        try
         {
-            listener.Start(backlog);
+            while (!token.IsCancellationRequested)
+                observer.OnNext(await listener.AcceptTcpClientAsync());
 
-            try
-            {
-                while (!token.IsCancellationRequested)
-                    observer.OnNext(await listener.AcceptTcpClientAsync());
+            observer.OnCompleted();
 
-                observer.OnCompleted();
-
-                listener.Stop();
-            }
-            catch (Exception error)
-            {
-                observer.OnError(error);
-            }
-        });
-    }
+            listener.Stop();
+        }
+        catch (Exception error)
+        {
+            observer.OnError(error);
+        }
+    });
+}
+```
 
 Note that the observable factory method used is the asynchonous version which
 provides a cancellation token. We can use this to control exit from the listen
@@ -164,24 +172,26 @@ loop and produce the `OnCompleted` action.
 Connecting works in a similar manner to listening. We observe on and endpoint
 and receive a client.
 
-    public static IObservable<TcpClient> ToConnectObservable(this IPEndPoint endpoint)
+```cs
+public static IObservable<TcpClient> ToConnectObservable(this IPEndPoint endpoint)
+{
+    return Observable.Create<TcpClient>(async (observer, token) =>
     {
-        return Observable.Create<TcpClient>(async (observer, token) =>
+        try
         {
-            try
-            {
-                var client = new TcpClient();
-                await client.ConnectAsync(endpoint.Address, endpoint.Port);
-                token.ThrowIfCancellationRequested();
-                observer.OnNext(client);
-                observer.OnCompleted();
-            }
-            catch (Exception error)
-            {
-                observer.OnError(error);
-            }
-        });
-    }
+            var client = new TcpClient();
+            await client.ConnectAsync(endpoint.Address, endpoint.Port);
+            token.ThrowIfCancellationRequested();
+            observer.OnNext(client);
+            observer.OnCompleted();
+        }
+        catch (Exception error)
+        {
+            observer.OnError(error);
+        }
+    });
+}
+```
 
 As with the listener we use the asynchronous factory method. As the connect may
 take some time I have added a cancellation token check after the connection
@@ -197,73 +207,81 @@ It is often more efficient to manage the byte arrays in a pool. When we do
 this the buffers may be larger than the payload, so I use a trivial class
 to hold the byte array and payload length.
 
-    public class ByteBuffer
+```cs
+public class ByteBuffer
+{
+    public ByteBuffer(byte[] bytes, int length)
     {
-        public ByteBuffer(byte[] bytes, int length)
-        {
-            Bytes = bytes;
-            Length = length;
-        }
-
-        public byte[] Bytes { get; private set; }
-        public int Length { get; private set; }
+        Bytes = bytes;
+        Length = length;
     }
+
+    public byte[] Bytes { get; private set; }
+    public int Length { get; private set; }
+}
+```
 
 The clients are thin wrappers around the streams:
 
-    public static ISubject<ByteBuffer, ByteBuffer> ToClientSubject(this TcpClient client, int size, CancellationToken token)
-    {
-        return Subject.Create(client.ToClientObserver(token), client.ToClientObservable(size));
-    }
+```cs
+public static ISubject<ByteBuffer, ByteBuffer> ToClientSubject(this TcpClient client, int size, CancellationToken token)
+{
+    return Subject.Create(client.ToClientObserver(token), client.ToClientObservable(size));
+}
 
-    public static IObservable<ByteBuffer> ToClientObservable(this TcpClient client, int size)
-    {
-        return client.GetStream().ToStreamObservable(size);
-    }
+public static IObservable<ByteBuffer> ToClientObservable(this TcpClient client, int size)
+{
+    return client.GetStream().ToStreamObservable(size);
+}
 
-    public static IObserver<ByteBuffer> ToClientObserver(this TcpClient client, CancellationToken token)
-    {
-        return client.GetStream().ToStreamObserver(token);
-    }
+public static IObserver<ByteBuffer> ToClientObserver(this TcpClient client, CancellationToken token)
+{
+    return client.GetStream().ToStreamObserver(token);
+}
+```
 
 The stream observer (writer) is the most straightforward as the write method
 guarantees to send the entire buffer.
 
-    public static IObserver<ByteBuffer> ToStreamObserver(this Stream stream, CancellationToken token)
+```cs
+public static IObserver<ByteBuffer> ToStreamObserver(this Stream stream, CancellationToken token)
+{
+    return Observer.Create<ByteBuffer>(async buffer =>
     {
-        return Observer.Create<ByteBuffer>(async buffer =>
-        {
-            await stream.WriteAsync(buffer.Bytes, 0, buffer.Length, token);
-        });
-    }
+        await stream.WriteAsync(buffer.Bytes, 0, buffer.Length, token);
+    });
+}
+```
 
 The stream observable follows a similar pattern to the previous observables.
 
-    public static IObservable<ByteBuffer> ToStreamObservable(this Stream stream, int size)
+```cs
+public static IObservable<ByteBuffer> ToStreamObservable(this Stream stream, int size)
+{
+    return Observable.Create<ByteBuffer>(async (observer, token) =>
     {
-        return Observable.Create<ByteBuffer>(async (observer, token) =>
+        var buffer = new byte[size];
+
+        try
         {
-            var buffer = new byte[size];
-
-            try
+            while (!token.IsCancellationRequested)
             {
-                while (!token.IsCancellationRequested)
-                {
-                    var received = await stream.ReadAsync(buffer, 0, size, token);
-                    if (received == 0)
-                        break;
+                var received = await stream.ReadAsync(buffer, 0, size, token);
+                if (received == 0)
+                    break;
 
-                    observer.OnNext(new ByteBuffer(buffer, received));
-                }
+                observer.OnNext(new ByteBuffer(buffer, received));
+            }
 
-                observer.OnCompleted();
-            }
-            catch (Exception error)
-            {
-                observer.OnError(error);
-            }
-        });
-    }
+            observer.OnCompleted();
+        }
+        catch (Exception error)
+        {
+            observer.OnError(error);
+        }
+    });
+}
+```
 
 I have made a decision to create a dedicated buffer for each observable. This
 may not be what you want. An example using managed buffers can be seen below.
@@ -276,15 +294,17 @@ message size or content so the client implementations are ideal. It simply
 forwards what it receives back to the client. Here is a slightly simplified
 version of the code.
 
-    endpoint.ToListenerObservable(10)
-        .ObserveOn(TaskPoolScheduler.Default)
-        .Subscribe(
-            client =>
-                client.ToClientObservable(1024)
-                    .Subscribe(client.ToClientObserver(cts.Token), token),
-            error => Console.WriteLine("Error: " + error.Message),
-            () => Console.WriteLine("OnCompleted"),
-            token);
+```cs
+endpoint.ToListenerObservable(10)
+    .ObserveOn(TaskPoolScheduler.Default)
+    .Subscribe(
+        client =>
+            client.ToClientObservable(1024)
+                .Subscribe(client.ToClientObserver(cts.Token), token),
+        error => Console.WriteLine("Error: " + error.Message),
+        () => Console.WriteLine("OnCompleted"),
+        token);
+```
 
 Note how we can use the rx `ObserveOn` method to handle the client thread
 creation.
@@ -295,71 +315,79 @@ now of indeterminate length I use managed buffers. With managed buffers there
 must be a mechanism to return the buffer to the pool. To achieve this we use a
 disposable buffer.
 
-    public class DisposableByteBuffer : ByteBuffer, IDisposable
+```cs
+public class DisposableByteBuffer : ByteBuffer, IDisposable
+{
+    private readonly IDisposable _disposable;
+
+    public DisposableByteBuffer(byte[] bytes, int length, IDisposable disposable)
+        : base(bytes, length)
     {
-        private readonly IDisposable _disposable;
-
-        public DisposableByteBuffer(byte[] bytes, int length, IDisposable disposable)
-            : base(bytes, length)
-        {
-            if (disposable == null)
-                throw new ArgumentNullException("disposable");
-            _disposable = disposable;
-        }
-
-        public void Dispose()
-        {
-            _disposable.Dispose();
-        }
+        if (disposable == null)
+            throw new ArgumentNullException("disposable");
+        _disposable = disposable;
     }
+
+    public void Dispose()
+    {
+        _disposable.Dispose();
+    }
+}
+```
 
 The frame clients simply delegate the behaviour to their streams.
 
-    public static ISubject<DisposableByteBuffer, DisposableByteBuffer> ToFrameClientSubject(this TcpClient client, BufferManager bufferManager, CancellationToken token)
-    {
-        return Subject.Create(client.ToFrameClientObserver(token), client.ToFrameClientObservable(bufferManager));
-    }
+```cs
+public static ISubject<DisposableByteBuffer, DisposableByteBuffer> ToFrameClientSubject(this TcpClient client, BufferManager bufferManager, CancellationToken token)
+{
+    return Subject.Create(client.ToFrameClientObserver(token), client.ToFrameClientObservable(bufferManager));
+}
 
-    public static IObservable<DisposableByteBuffer> ToFrameClientObservable(this TcpClient client, BufferManager bufferManager)
-    {
-        return client.GetStream().ToFrameStreamObservable(bufferManager);
-    }
+public static IObservable<DisposableByteBuffer> ToFrameClientObservable(this TcpClient client, BufferManager bufferManager)
+{
+    return client.GetStream().ToFrameStreamObservable(bufferManager);
+}
 
-    public static IObserver<DisposableByteBuffer> ToFrameClientObserver(this TcpClient client, CancellationToken token)
-    {
-        return client.GetStream().ToFrameStreamObserver(token);
-    }
+public static IObserver<DisposableByteBuffer> ToFrameClientObserver(this TcpClient client, CancellationToken token)
+{
+    return client.GetStream().ToFrameStreamObserver(token);
+}
+```
 
 The observer is straightforward.
 
-    public static IObserver<DisposableByteBuffer> ToFrameStreamObserver(this Stream stream, CancellationToken token)
+```cs
+public static IObserver<DisposableByteBuffer> ToFrameStreamObserver(this Stream stream, CancellationToken token)
+{
+    return Observer.Create<DisposableByteBuffer>(async managedBuffer =>
     {
-        return Observer.Create<DisposableByteBuffer>(async managedBuffer =>
-        {
-            await stream.WriteAsync(BitConverter.GetBytes(managedBuffer.Length), 0, sizeof(int), token);
-            await stream.WriteAsync(managedBuffer.Bytes, 0, managedBuffer.Length, token);
-        });
-    }
+        await stream.WriteAsync(BitConverter.GetBytes(managedBuffer.Length), 0, sizeof(int), token);
+        await stream.WriteAsync(managedBuffer.Bytes, 0, managedBuffer.Length, token);
+    });
+}
+```
 
 We use the `BitConverter` to turn the length into a byte stream and send it as
 the first packet. Finally the byte array is sent.
 
 The observable requires a helper method to ensure all the required bytes are read.
 
-    public static async Task<int> ReadBytesCompletelyAsync(this Stream stream, byte[] buf, int length, CancellationToken token)
+```cs
+public static async Task<int> ReadBytesCompletelyAsync(this Stream stream, byte[] buf, int length, CancellationToken token)
+{
+    var read = 0;
+    while (read < length)
     {
-        var read = 0;
-        while (read < length)
-        {
-            var remaining = length - read;
-            var bytes = await stream.ReadAsync(buf, read, remaining, token);
-            if (bytes == 0)
-                return read;
+        var remaining = length - read;
+        var bytes = await stream.ReadAsync(buf, read, remaining, token);
+        if (bytes == 0)
+            return read;
 
-            read += bytes;
-        }
-        return read;
+        read += bytes;
     }
+    return read;
+}
+```
 
 We need to handle the case where no bytes are returned because the socket is
 closed. We could throw an exception, but I prefer not to use exceptions to
@@ -367,35 +395,37 @@ control logic, so I return the actual length read.
 
 Finally the frame stream observable.
 
-    public static IObservable<DisposableByteBuffer> ToFrameStreamObservable(this Stream stream, BufferManager bufferManager)
+```cs
+public static IObservable<DisposableByteBuffer> ToFrameStreamObservable(this Stream stream, BufferManager bufferManager)
+{
+    return Observable.Create<DisposableByteBuffer>(async (observer, token) =>
     {
-        return Observable.Create<DisposableByteBuffer>(async (observer, token) =>
+        var headerBuffer = new byte[sizeof(int)];
+
+        try
         {
-            var headerBuffer = new byte[sizeof(int)];
-
-            try
+            while (!token.IsCancellationRequested)
             {
-                while (!token.IsCancellationRequested)
-                {
-                    if (await stream.ReadBytesCompletelyAsync(headerBuffer, headerBuffer.Length, token) != headerBuffer.Length)
-                        break;
-                    var length = BitConverter.ToInt32(headerBuffer, 0);
+                if (await stream.ReadBytesCompletelyAsync(headerBuffer, headerBuffer.Length, token) != headerBuffer.Length)
+                    break;
+                var length = BitConverter.ToInt32(headerBuffer, 0);
 
-                    var buffer = bufferManager.TakeBuffer(length);
-                    if (await stream.ReadBytesCompletelyAsync(buffer, length, token) != length)
-                        break;
+                var buffer = bufferManager.TakeBuffer(length);
+                if (await stream.ReadBytesCompletelyAsync(buffer, length, token) != length)
+                    break;
 
-                    observer.OnNext(new DisposableByteBuffer(buffer, length, Disposable.Create(() => bufferManager.ReturnBuffer(buffer))));
-                }
-
-                observer.OnCompleted();
+                observer.OnNext(new DisposableByteBuffer(buffer, length, Disposable.Create(() => bufferManager.ReturnBuffer(buffer))));
             }
-            catch (Exception error)
-            {
-                observer.OnError(error);
-            }
-        });
-    }
+
+            observer.OnCompleted();
+        }
+        catch (Exception error)
+        {
+            observer.OnError(error);
+        }
+    });
+}
+```
 
 I choose not to use the buffer manager to allocate the header buffer as it is
 only four bytes. We check the actual number of bytes read to detect closed
@@ -408,17 +438,19 @@ The disposable buffer is primed to return the buffer when `Dispose` is called.
 The following example shows how the buffer is finally disposed by the echo
 client.
 
-    var observerDisposable =
-        ToFrameClientObserver(client, bufferManager)
-            .ObserveOn(TaskPoolScheduler.Default)
-            .Subscribe(
-                disposableBuffer =>
-                {
-                    Console.WriteLine("Read: " + Encoding.UTF8.GetString(disposableBuffer.Bytes, 0, disposableBuffer.Length));
-                    disposableBuffer.Dispose();
-                },
-                error => Console.WriteLine("Error: " + error.Message),
-                () => Console.WriteLine("OnCompleted: FrameReceiver"));
+```cs
+var observerDisposable =
+    ToFrameClientObserver(client, bufferManager)
+        .ObserveOn(TaskPoolScheduler.Default)
+        .Subscribe(
+            disposableBuffer =>
+            {
+                Console.WriteLine("Read: " + Encoding.UTF8.GetString(disposableBuffer.Bytes, 0, disposableBuffer.Length));
+                disposableBuffer.Dispose();
+            },
+            error => Console.WriteLine("Error: " + error.Message),
+            () => Console.WriteLine("OnCompleted: FrameReceiver"));
+```
 
 ### RxSocketStream
 
@@ -426,15 +458,17 @@ This is almost as trivial as RxTcp as it uses the `Stream` based asynchronous
 methods for reading and writing. However it does need to implement the
 asynchronous `Task` pattern for listen and connect.
 
-    public static async Task<Socket> AcceptAsync(this Socket socket)
-    {
-        return await Task<Socket>.Factory.FromAsync(socket.BeginAccept, socket.EndAccept, null);
-    }
+```cs
+public static async Task<Socket> AcceptAsync(this Socket socket)
+{
+    return await Task<Socket>.Factory.FromAsync(socket.BeginAccept, socket.EndAccept, null);
+}
 
-    public static async Task ConnectAsync(this Socket socket, IPEndPoint endpoint)
-    {
-        await Task.Factory.FromAsync((callback, state) => socket.BeginConnect(endpoint, callback, state), ias => socket.EndConnect(ias), null);
-    }
+public static async Task ConnectAsync(this Socket socket, IPEndPoint endpoint)
+{
+    await Task.Factory.FromAsync((callback, state) => socket.BeginConnect(endpoint, callback, state), ias => socket.EndConnect(ias), null);
+}
+```
 
 For some reason this does not work if the `EndXXX` call is a method group.
 
