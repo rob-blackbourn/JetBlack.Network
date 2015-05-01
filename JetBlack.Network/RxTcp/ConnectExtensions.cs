@@ -17,6 +17,7 @@ namespace JetBlack.Network.RxTcp
                     await client.ConnectAsync(endpoint.Address, endpoint.Port);
                     token.ThrowIfCancellationRequested();
                     observer.OnNext(client);
+                    observer.OnCompleted();
                 }
                 catch (Exception error)
                 {

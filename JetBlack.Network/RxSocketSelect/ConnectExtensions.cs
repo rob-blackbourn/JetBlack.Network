@@ -17,47 +17,54 @@ namespace JetBlack.Network.RxSocketSelect
             {
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { Blocking = false };
 
+                Exception error = null;
+                bool isConnected = false;
+
                 try
                 {
                     socket.Connect(endpoint);
-                    observer.OnNext(socket);
+                    isConnected = true;
                 }
                 catch (Exception exception)
                 {
                     if (!exception.IsWouldBlock())
-                        observer.OnError(exception);
+                        error = exception;
                 }
+                if (!isConnected && error == null)
+                {
+                    var waitEvent = new ManualResetEvent(false);
+                    var waitHandles = new[] {token.WaitHandle, waitEvent};
 
-                var waitEvent = new ManualResetEvent(false);
-                var waitHandles = new[] { token.WaitHandle, waitEvent };
-                Exception error = null;
-
-                selector.AddCallback(SelectMode.SelectWrite, socket,
-                    _ =>
-                    {
-                        try
+                    selector.AddCallback(SelectMode.SelectWrite, socket,
+                        _ =>
                         {
-                            if (!socket.Connected)
-                                socket.Connect(endpoint);
-                            selector.RemoveCallback(SelectMode.SelectWrite, socket);
-                            waitEvent.Set();
-                        }
-                        catch (Exception exception)
-                        {
-                            if (exception.IsWouldBlock())
-                                return;
-                            error = exception;
-                            waitEvent.Set();
-                        }
-                    });
+                            try
+                            {
+                                if (!socket.Connected)
+                                    socket.Connect(endpoint);
+                                selector.RemoveCallback(SelectMode.SelectWrite, socket);
+                                isConnected = true;
+                                waitEvent.Set();
+                            }
+                            catch (Exception exception)
+                            {
+                                if (exception.IsWouldBlock())
+                                    return;
+                                error = exception;
+                                waitEvent.Set();
+                            }
+                        });
 
-                if (WaitHandle.WaitAny(waitHandles) == 0)
-                    token.ThrowIfCancellationRequested();
+                    if (WaitHandle.WaitAny(waitHandles) == 0)
+                        token.ThrowIfCancellationRequested();
+                }
 
                 if (error == null)
                     observer.OnNext(socket);
                 else
                     observer.OnError(error);
+
+                observer.OnCompleted();
 
                 return Disposable.Empty;
             });

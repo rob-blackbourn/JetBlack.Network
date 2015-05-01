@@ -159,18 +159,29 @@ loop and produce the `OnCompleted` action.
 
 #### Connecting
 
-Connect is more trivial:
+Connecting works in a similar manner to listening. We observe on and endpoint
+and receive a client.
 
     public static IObservable<TcpClient> ToConnectObservable(this IPEndPoint endpoint)
     {
         return Observable.Create<TcpClient>(async (observer, token) =>
         {
-            var client = new TcpClient();
-            await client.ConnectAsync(endpoint.Address, endpoint.Port);
-            token.ThrowIfCancellationRequested();
-            observer.OnNext(client);
+            try
+            {
+                var client = new TcpClient();
+                await client.ConnectAsync(endpoint.Address, endpoint.Port);
+                token.ThrowIfCancellationRequested();
+                observer.OnNext(client);
+                observer.OnCompleted();
+            }
+            catch (Exception error)
+            {
+                observer.OnError(error);
+            }
         });
     }
+
+As with the listener we use the asynchronous factory method.
 
 #### Reading and writing
 
