@@ -287,6 +287,137 @@ version of the code.
 Note how we can use the rx `ObserveOn` method to handle the client thread
 creation.
 
+The frame clients manage fragmentation by sending/receiving the length of the
+byte array, before sending the array itself. Because what is read or written is
+now of indeterminate length I use managed buffers. With managed buffers there
+must be a mechanism to return the buffer to the pool. To achieve this we use a
+disposable buffer.
+
+    public class DisposableByteBuffer : ByteBuffer, IDisposable
+    {
+        private readonly IDisposable _disposable;
+
+        public DisposableByteBuffer(byte[] bytes, int length, IDisposable disposable)
+            : base(bytes, length)
+        {
+            if (disposable == null)
+                throw new ArgumentNullException("disposable");
+            _disposable = disposable;
+        }
+
+        public void Dispose()
+        {
+            _disposable.Dispose();
+        }
+    }
+
+The frame clients simply delegate the behaviour to their streams.
+
+    public static ISubject<DisposableByteBuffer, DisposableByteBuffer> ToFrameClientSubject(this TcpClient client, BufferManager bufferManager, CancellationToken token)
+    {
+        return Subject.Create(client.ToFrameClientObserver(token), client.ToFrameClientObservable(bufferManager));
+    }
+
+    public static IObservable<DisposableByteBuffer> ToFrameClientObservable(this TcpClient client, BufferManager bufferManager)
+    {
+        return client.GetStream().ToFrameStreamObservable(bufferManager);
+    }
+
+    public static IObserver<DisposableByteBuffer> ToFrameClientObserver(this TcpClient client, CancellationToken token)
+    {
+        return client.GetStream().ToFrameStreamObserver(token);
+    }
+
+The observer is straightforward.
+
+    public static IObserver<DisposableByteBuffer> ToFrameStreamObserver(this Stream stream, CancellationToken token)
+    {
+        return Observer.Create<DisposableByteBuffer>(async managedBuffer =>
+        {
+            await stream.WriteAsync(BitConverter.GetBytes(managedBuffer.Length), 0, sizeof(int), token);
+            await stream.WriteAsync(managedBuffer.Bytes, 0, managedBuffer.Length, token);
+        });
+    }
+
+We use the `BitConverter` to turn the length into a byte stream and send it as
+the first packet. Finally the byte array is sent.
+
+The observable requires a helper method to ensure all the required bytes are read.
+
+    public static async Task<int> ReadBytesCompletelyAsync(this Stream stream, byte[] buf, int length, CancellationToken token)
+    {
+        var read = 0;
+        while (read < length)
+        {
+            var remaining = length - read;
+            var bytes = await stream.ReadAsync(buf, read, remaining, token);
+            if (bytes == 0)
+                return read;
+
+            read += bytes;
+        }
+        return read;
+    }
+
+We need to handle the case where no bytes are returned because the socket is
+closed. We could throw an exception, but I prefer not to use exceptions to
+control logic, so I return the actual length read.
+
+Finally the frame stream observable.
+
+    public static IObservable<DisposableByteBuffer> ToFrameStreamObservable(this Stream stream, BufferManager bufferManager)
+    {
+        return Observable.Create<DisposableByteBuffer>(async (observer, token) =>
+        {
+            var headerBuffer = new byte[sizeof(int)];
+
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    if (await stream.ReadBytesCompletelyAsync(headerBuffer, headerBuffer.Length, token) != headerBuffer.Length)
+                        break;
+                    var length = BitConverter.ToInt32(headerBuffer, 0);
+
+                    var buffer = bufferManager.TakeBuffer(length);
+                    if (await stream.ReadBytesCompletelyAsync(buffer, length, token) != length)
+                        break;
+
+                    observer.OnNext(new DisposableByteBuffer(buffer, length, Disposable.Create(() => bufferManager.ReturnBuffer(buffer))));
+                }
+
+                observer.OnCompleted();
+            }
+            catch (Exception error)
+            {
+                observer.OnError(error);
+            }
+        });
+    }
+
+I choose not to use the buffer manager to allocate the header buffer. This will
+only be four bytes long, and the garbage collection is efficient for small
+objects. The length is decoded with `BitConverter`.
+
+Once the length of the content is known we use the `BufferManager` to provide
+the byte array. The disposable buffer is primed to return the buffer when
+`Dispose` is called.
+
+The following example shows how the buffer is finally disposed by the echo
+client.
+
+    var observerDisposable =
+        ToFrameClientObserver(client, bufferManager)
+            .ObserveOn(TaskPoolScheduler.Default)
+            .Subscribe(
+                disposableBuffer =>
+                {
+                    Console.WriteLine("Read: " + Encoding.UTF8.GetString(disposableBuffer.Bytes, 0, disposableBuffer.Length));
+                    disposableBuffer.Dispose();
+                },
+                error => Console.WriteLine("Error: " + error.Message),
+                () => Console.WriteLine("OnCompleted: FrameReceiver"));
+
 ### RxSocketStream
 
 This is almost as trivial as RxTcp as it uses the `Stream` based asynchornous methods for
