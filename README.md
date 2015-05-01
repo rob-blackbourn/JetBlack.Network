@@ -440,8 +440,7 @@ For some reason this does not work if the `EndXXX` call is a method group.
 
 This follows on from RxSocketStream by using asynchronous patterns for the
 sending and receiving. I have added a parameter for `SocketFlags`. We should
-be able to send and receive out of band data with this, but I have not tried
-this.
+be able to send and receive out of band, but I have not tried this.
 
 ### RxSocketSelect
 
