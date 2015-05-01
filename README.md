@@ -44,7 +44,7 @@ of the buffer to create. typically the extension method will also take a `Cancel
 ### Frame Clients
 
 Frame Clients follow the same pattern to the clients, but use a `DispoableByteBuffer` and send/receive the length
-of the buffer. This ensures the full message is received. They also take a `[BufferManager](https://msdn.microsoft.com/library/system.servicemodel.channels.buffermanager.aspx)` to reduce garbage collection.
+of the buffer. This ensures the full message is received. They also take a [`BufferManager`](https://msdn.microsoft.com/library/system.servicemodel.channels.buffermanager.aspx) to reduce garbage collection.
 
 ## Connectors
 
