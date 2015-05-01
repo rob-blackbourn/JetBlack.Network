@@ -397,11 +397,12 @@ Finally the frame stream observable.
 
 I choose not to use the buffer manager to allocate the header buffer. This will
 only be four bytes long, and the garbage collection is efficient for small
-objects. The length is decoded with `BitConverter`.
+objects. We check the actual number of bytes read to detect closed sockets,
+then decode the length with `BitConverter`.
 
-Once the length of the content is known we use the `BufferManager` to provide
-the byte array. The disposable buffer is primed to return the buffer when
-`Dispose` is called.
+Once the length of the content is known we use 
+`System.ServiceModel.Channels.BufferManager` to provide the byte array.
+The disposable buffer is primed to return the buffer when `Dispose` is called.
 
 The following example shows how the buffer is finally disposed by the echo
 client.
@@ -420,23 +421,37 @@ client.
 
 ### RxSocketStream
 
-This is almost as trivial as RxTcp as it uses the `Stream` based asynchornous methods for
-reading and writing. However it does need to implement the asynchronous `Task` pattern for listeneing and connect.
+This is almost as trivial as RxTcp as it uses the `Stream` based asynchronous
+methods for reading and writing. However it does need to implement the
+asynchronous `Task` pattern for listen and connect.
 
     public static async Task<Socket> AcceptAsync(this Socket socket)
     {
         return await Task<Socket>.Factory.FromAsync(socket.BeginAccept, socket.EndAccept, null);
     }
 
+    public static async Task ConnectAsync(this Socket socket, IPEndPoint endpoint)
+    {
+        await Task.Factory.FromAsync((callback, state) => socket.BeginConnect(endpoint, callback, state), ias => socket.EndConnect(ias), null);
+    }
+
+For some reason this does not work if the `EndXXX` call is a method group.
+
 ### RxSocket
 
-This follows on from RxSocketStream by using asynchronous patterns for the sending and receiving.
+This follows on from RxSocketStream by using asynchronous patterns for the
+sending and receiving. I have added a parameter for `SocketFlags`. We should
+be ableto send and receive out of band data with this, but I have not tried
+this.
 
 ### RxSocketSelect
 
-This is the most convoluted implementation as it uses `Socket.Select` to provide the asynchronous behaviour.
+This is the most convoluted implementation as it uses `Socket.Select` to
+provide the asynchronous behaviour. I implemented this as a challenge! but also
+to find out what the difference in performance was on Unix based systems using
+Mono.
 
-I implemented this as a challenge! but also to find out what the difference in performance was on Unix based systems using Mono.
+The implementation is fairly complete, but I have not tried the out of band reading.
 
 ## Wrap Up
 

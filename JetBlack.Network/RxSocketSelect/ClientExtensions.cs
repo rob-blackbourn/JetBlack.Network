@@ -17,7 +17,9 @@ namespace JetBlack.Network.RxSocketSelect
             {
                 var buffer = new byte[size];
 
-                selector.AddCallback(SelectMode.SelectRead, socket, _ =>
+                var selectMode = socketFlags.HasFlag(SocketFlags.OutOfBand) ? SelectMode.SelectError : SelectMode.SelectRead;
+
+                selector.AddCallback(selectMode, socket, _ =>
                 {
                     try
                     {
