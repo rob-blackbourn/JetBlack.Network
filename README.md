@@ -19,9 +19,11 @@ receive clients as they connect. This is achieved by an extension method
 `IObservable<TcpClient>` or `IObservable<Socket>`. So you might do the
 following:
 
-    new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9211)
-        .ToListenerObservable(10)
-        .Subscribe(socket => DoSomething(socket));
+```cs
+new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9211)
+    .ToListenerObservable(10)
+    .Subscribe(socket => DoSomething(socket));
+```
 
 The `10` is the backlog.
 
