@@ -122,14 +122,13 @@ And the client looks like this:
 
 This implementation is the most straightforward. The `TcpListener` and `TcpClient` classes have
 asynchronous methods which can be used with `await` when connecting and listening. The provide
-a `NetworkStream` which inherits asynchronous methods from `Stream`.
+a `NetworkStream` which implement asynchronous methods declared by `Stream`.
 
 The listen is implemented in the following manner:
 
     public static IObservable<TcpClient> ToListenerObservable(this IPEndPoint endpoint, int backlog)
     {
-        var listener = new TcpListener(endpoint);
-        return listener.ToListenerObservable(10);
+        return new TcpListener(endpoint).ToListenerObservable(10);
     }
 
     public static IObservable<TcpClient> ToListenerObservable(this TcpListener listener, int backlog)
@@ -141,13 +140,7 @@ The listen is implemented in the following manner:
             try
             {
                 while (!token.IsCancellationRequested)
-                {
-                    var client = await listener.AcceptTcpClientAsync();
-                    if (client == null)
-                        break;
-
-                    observer.OnNext(client);
-                }
+                    observer.OnNext(await listener.AcceptTcpClientAsync());
 
                 observer.OnCompleted();
 
@@ -159,6 +152,10 @@ The listen is implemented in the following manner:
             }
         });
     }
+
+Note that the observable factory method used is the asynchonous version which
+provides a cancellation token. We can use this to control exit from the listen
+loop and produce the `OnCompleted` action.
 
 #### Connecting
 

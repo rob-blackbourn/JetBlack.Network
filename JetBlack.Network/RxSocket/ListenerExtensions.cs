@@ -24,13 +24,7 @@ namespace JetBlack.Network.RxSocket
                 try
                 {
                     while (!token.IsCancellationRequested)
-                    {
-                        var client = await socket.AcceptAsync();
-                        if (client == null)
-                            break;
-
-                        observer.OnNext(client);
-                    }
+                        observer.OnNext(await socket.AcceptAsync());
 
                     observer.OnCompleted();
 

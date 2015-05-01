@@ -9,8 +9,7 @@ namespace JetBlack.Network.RxTcp
     {
         public static IObservable<TcpClient> ToListenerObservable(this IPEndPoint endpoint, int backlog)
         {
-            var listener = new TcpListener(endpoint);
-            return listener.ToListenerObservable(10);
+            return new TcpListener(endpoint).ToListenerObservable(10);
         }
 
         public static IObservable<TcpClient> ToListenerObservable(this TcpListener listener, int backlog)
@@ -22,13 +21,7 @@ namespace JetBlack.Network.RxTcp
                 try
                 {
                     while (!token.IsCancellationRequested)
-                    {
-                        var client = await listener.AcceptTcpClientAsync();
-                        if (client == null)
-                            break;
-
-                        observer.OnNext(client);
-                    }
+                        observer.OnNext(await listener.AcceptTcpClientAsync());
 
                     observer.OnCompleted();
 
