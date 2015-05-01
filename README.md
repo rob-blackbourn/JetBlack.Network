@@ -395,10 +395,9 @@ Finally the frame stream observable.
         });
     }
 
-I choose not to use the buffer manager to allocate the header buffer. This will
-only be four bytes long, and the garbage collection is efficient for small
-objects. We check the actual number of bytes read to detect closed sockets,
-then decode the length with `BitConverter`.
+I choose not to use the buffer manager to allocate the header buffer as it is
+only four bytes. We check the actual number of bytes read to detect closed
+sockets, then decode the length with `BitConverter`.
 
 Once the length of the content is known we use 
 `System.ServiceModel.Channels.BufferManager` to provide the byte array.
