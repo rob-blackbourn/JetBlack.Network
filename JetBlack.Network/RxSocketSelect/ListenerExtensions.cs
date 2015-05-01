@@ -13,7 +13,7 @@ namespace JetBlack.Network.RxSocketSelect
         {
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { Blocking = true };
             socket.Bind(endpoint);
-            return socket.ToListenerObservable(10, selector);
+            return socket.ToListenerObservable(backlog, selector);
         }
 
         public static IObservable<Socket> ToListenerObservable(this Socket socket, int backlog, Selector selector)

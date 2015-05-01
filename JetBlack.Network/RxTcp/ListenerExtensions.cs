@@ -9,7 +9,7 @@ namespace JetBlack.Network.RxTcp
     {
         public static IObservable<TcpClient> ToListenerObservable(this IPEndPoint endpoint, int backlog)
         {
-            return new TcpListener(endpoint).ToListenerObservable(10);
+            return new TcpListener(endpoint).ToListenerObservable(backlog);
         }
 
         public static IObservable<TcpClient> ToListenerObservable(this TcpListener listener, int backlog)
