@@ -15,14 +15,11 @@ namespace JetBlack.Examples.RxTcp.EchoServer
 
             var cts = new CancellationTokenSource();
 
-            var listener = endpoint.ToListenerObservable(10);
-
-            listener
+            endpoint.ToListenerObservable(10)
                 .ObserveOn(TaskPoolScheduler.Default)
                 .Subscribe(
                     client =>
                         client.ToClientObservable(1024)
-                            .SubscribeOn(TaskPoolScheduler.Default)
                             .Subscribe(client.ToClientObserver(cts.Token), cts.Token),
                     error => Console.WriteLine("Error: " + error.Message),
                     () => Console.WriteLine("OnCompleted"),

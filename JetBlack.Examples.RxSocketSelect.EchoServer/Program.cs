@@ -26,7 +26,6 @@ namespace JetBlack.Examples.RxSocketSelect.EchoServer
                 .Subscribe(
                     client =>
                         client.ToClientObservable(1024, SocketFlags.None, selector)
-                            .SubscribeOn(TaskPoolScheduler.Default)
                             .Subscribe(client.ToClientObserver(SocketFlags.None, selector, cts.Token), cts.Token),
                     error => Console.WriteLine("Error: " + error.Message),
                     () => Console.WriteLine("OnCompleted"),

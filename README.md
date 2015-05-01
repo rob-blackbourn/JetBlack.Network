@@ -181,9 +181,31 @@ and receive a client.
         });
     }
 
-As with the listener we use the asynchronous factory method.
+As with the listener we use the asynchronous factory method. As the connect may
+take some time I have added a cancellation token check after the connection
+returns.
 
 #### Reading and writing
+
+I have implemented two readers and writers. One for bytes, and another for
+"frames" which are discussed below. Note that when byte arrays are sent and
+received they may be fragmented (split into separate blocks).
+
+It is often more efficient to managed the byte arrays in a pool. When we do
+this the buffers may be larger than the payload, so I use a trivial class
+to hold the byte array and payload length.
+
+    public class ByteBuffer
+    {
+        public ByteBuffer(byte[] bytes, int length)
+        {
+            Bytes = bytes;
+            Length = length;
+        }
+
+        public byte[] Bytes { get; private set; }
+        public int Length { get; private set; }
+    }
 
 The clients are thin wrappers around the streams:
 
@@ -202,7 +224,18 @@ The clients are thin wrappers around the streams:
         return client.GetStream().ToStreamObserver(token);
     }
 
-The streams follow a simple pattern:
+The stream observer (writer) is the most straightforward as the write method
+guarantees to send the entire buffer.
+
+    public static IObserver<ByteBuffer> ToStreamObserver(this Stream stream, CancellationToken token)
+    {
+        return Observer.Create<ByteBuffer>(async buffer =>
+        {
+            await stream.WriteAsync(buffer.Bytes, 0, buffer.Length, token);
+        });
+    }
+
+The stream observable follows a similar pattern to the previous observables.
 
     public static IObservable<ByteBuffer> ToStreamObservable(this Stream stream, int size)
     {
@@ -230,13 +263,28 @@ The streams follow a simple pattern:
         });
     }
 
-    public static IObserver<ByteBuffer> ToStreamObserver(this Stream stream, CancellationToken token)
-    {
-        return Observer.Create<ByteBuffer>(async buffer =>
-        {
-            await stream.WriteAsync(buffer.Bytes, 0, buffer.Length, token);
-        });
-    }
+I have made a decision to create a dedicated buffer for each observable. This
+may not be what you want. An example using managed buffers can be seen below.
+
+Note that the number of bytes read may be less than the size of the buffer.
+
+The client is used in the echo server examples to read from the socket and write
+it back to the client. The server doesn't need to know anything about the
+message size or content so the client implementations are ideal. Here is a
+slightly simplified version of the code.
+
+    endpoint.ToListenerObservable(10)
+        .ObserveOn(TaskPoolScheduler.Default)
+        .Subscribe(
+            client =>
+                client.ToClientObservable(1024)
+                    .Subscribe(client.ToClientObserver(cts.Token), token),
+            error => Console.WriteLine("Error: " + error.Message),
+            () => Console.WriteLine("OnCompleted"),
+            token);
+
+Note how we can use the rx `ObserveOn` method to handle the client thread
+creation.
 
 ### RxSocketStream
 
