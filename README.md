@@ -30,7 +30,7 @@ The `10` is the backlog.
 ### Clients
 
 Clients read with an `IObservable<ByteBuffer>` and write with an `IObserver<ByteBuffer>` and are created by
-extension methods which take a `Socket` or `TcpClient`. There is also an `ISubject<ByteBuffer, ByteBuffer>` for
+extension methods which take a [`Socket`](https://msdn.microsoft.com/library/system.net.sockets.socket.aspx) or [`TcpClient`](https://msdn.microsoft.com/library/system.net.sockets.tcpclient.aspx). There is also an `ISubject<ByteBuffer, ByteBuffer>` for
 reading and writing with the same object. So you might do the following:
 
 ```cs
@@ -85,9 +85,11 @@ Console.WriteLine("Press <ENTER> to quit");
 Console.ReadLine();
 
 cts.Cancel();
+```
 
 And the client looks like this:
 
+```cs
 var endpoint = ProgramArgs.Parse(args, new[] { "127.0.0.1:9211" }).EndPoint;
 
 var cts = new CancellationTokenSource();
