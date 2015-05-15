@@ -53,10 +53,7 @@ namespace JetBlack.Examples.RxSocket.EchoClient
 
                     cts.Cancel();
                 }, 
-                error =>
-                {
-                    Console.WriteLine("Failed to connect: " + error.Message);
-                },
+                error => Console.WriteLine("Failed to connect: " + error.Message),
                 cts.Token);
 
             cts.Token.WaitHandle.WaitOne();

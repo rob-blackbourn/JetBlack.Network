@@ -40,16 +40,8 @@ namespace JetBlack.Examples.RxSocketSelect.EchoClient
                                     Console.WriteLine("Read: " + Encoding.UTF8.GetString(disposableBuffer.Bytes, 0, disposableBuffer.Length));
                                     disposableBuffer.Dispose();
                                 },
-                                error =>
-                                {
-                                    Console.WriteLine("Error: " + error.Message);
-                                    Environment.Exit(-1);
-                                },
-                                () =>
-                                {
-                                    Console.WriteLine("OnCompleted: FrameReceiver");
-                                    Environment.Exit(0);
-                                });
+                                error => Console.WriteLine("Error: " + error.Message),
+                                () => Console.WriteLine("OnCompleted: FrameReceiver"));
 
                     Console.In.ToLineObservable()
                         .Subscribe(

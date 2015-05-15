@@ -29,10 +29,10 @@ namespace JetBlack.Examples.RxSocketStream.EchoClient
                         frameClientSubject
                             .ObserveOn(TaskPoolScheduler.Default)
                             .Subscribe(
-                                managedBuffer =>
+                                disposableBuffer =>
                                 {
-                                    Console.WriteLine("Read: " + Encoding.UTF8.GetString(managedBuffer.Bytes, 0, managedBuffer.Length));
-                                    managedBuffer.Dispose();
+                                    Console.WriteLine("Read: " + Encoding.UTF8.GetString(disposableBuffer.Bytes, 0, disposableBuffer.Length));
+                                    disposableBuffer.Dispose();
                                 },
                                 error => Console.WriteLine("Error: " + error.Message),
                                 () => Console.WriteLine("OnCompleted: FrameReceiver"));
