@@ -64,17 +64,19 @@ shows the RxSocket implementation.
 
 ### Echo Server
 
+
+
 ```cs
 var endpoint = ProgramArgs.Parse(args, new[] { "127.0.0.1:9211" }).EndPoint;
 
 var cts = new CancellationTokenSource();
 
 endpoint.ToListenerObservable(10)
-    .SubscribeOn(TaskPoolScheduler.Default)
+    .ObserveOn(TaskPoolScheduler.Default)
     .Subscribe(
         client =>
             client.ToClientObservable(1024, SocketFlags.None)
-                .ObserveOn(TaskPoolScheduler.Default)
+                 .ObserverOn(TaskPoolScheduler.Default)
                 .Subscribe(client.ToClientObserver(1024, SocketFlags.None), cts.Token),
         error => Console.WriteLine("Error: " + error.Message),
         () => Console.WriteLine("OnCompleted"),
@@ -362,7 +364,8 @@ public static IObserver<DisposableByteBuffer> ToFrameStreamObserver(this Stream 
 {
     return Observer.Create<DisposableByteBuffer>(async managedBuffer =>
     {
-        await stream.WriteAsync(BitConverter.GetBytes(managedBuffer.Length), 0, sizeof(int), token);
+        var headerBuffer = BitConverter.GetBytes(managedBuffer.Length);
+        await stream.WriteAsync(headerBuffer, 0, headerBuffer.Length, token);
         await stream.WriteAsync(managedBuffer.Bytes, 0, managedBuffer.Length, token);
     });
 }

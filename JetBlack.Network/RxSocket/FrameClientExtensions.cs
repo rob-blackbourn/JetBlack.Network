@@ -54,7 +54,8 @@ namespace JetBlack.Network.RxSocket
         {
             return Observer.Create<DisposableByteBuffer>(async managedBuffer =>
             {
-                await socket.SendCompletelyAsync(BitConverter.GetBytes(managedBuffer.Length), sizeof(int), socketFlags, token);
+                var headerBuffer = BitConverter.GetBytes(managedBuffer.Length);
+                await socket.SendCompletelyAsync(headerBuffer, headerBuffer.Length, socketFlags, token);
                 await socket.SendCompletelyAsync(managedBuffer.Bytes, managedBuffer.Length, socketFlags, token);
             });
         }

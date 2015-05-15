@@ -79,7 +79,8 @@ namespace JetBlack.Network.Common
         {
             return Observer.Create<DisposableByteBuffer>(async managedBuffer =>
             {
-                await stream.WriteAsync(BitConverter.GetBytes(managedBuffer.Length), 0, sizeof(int), token);
+                var headerBuffer = BitConverter.GetBytes(managedBuffer.Length);
+                await stream.WriteAsync(headerBuffer, 0, headerBuffer.Length, token);
                 await stream.WriteAsync(managedBuffer.Bytes, 0, managedBuffer.Length, token);
             });
         }
