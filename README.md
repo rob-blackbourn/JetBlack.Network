@@ -59,18 +59,17 @@ new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9211)
     
 ## Examples
 
-For each implementation there is an example echo client and server.
+For each implementation there is an example echo client and server. The following
+shows the RxSocket implementation.
 
-For the RxSocket implementation the server looks like this:
+### Echo Server
 
 ```cs
 var endpoint = ProgramArgs.Parse(args, new[] { "127.0.0.1:9211" }).EndPoint;
 
 var cts = new CancellationTokenSource();
 
-var listener = endpoint.ToListenerObservable(10);
-
-listener
+endpoint.ToListenerObservable(10)
     .SubscribeOn(TaskPoolScheduler.Default)
     .Subscribe(
         client =>
@@ -87,7 +86,7 @@ Console.ReadLine();
 cts.Cancel();
 ```
 
-And the client looks like this:
+### Echo Client
 
 ```cs
 var endpoint = ProgramArgs.Parse(args, new[] { "127.0.0.1:9211" }).EndPoint;
