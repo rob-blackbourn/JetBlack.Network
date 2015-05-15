@@ -64,8 +64,6 @@ shows the RxSocket implementation.
 
 ### Echo Server
 
-
-
 ```cs
 var endpoint = ProgramArgs.Parse(args, new[] { "127.0.0.1:9211" }).EndPoint;
 
@@ -76,7 +74,7 @@ endpoint.ToListenerObservable(10)
     .Subscribe(
         client =>
             client.ToClientObservable(1024, SocketFlags.None)
-                 .ObserverOn(TaskPoolScheduler.Default)
+                .ObserverOn(TaskPoolScheduler.Default)
                 .Subscribe(client.ToClientObserver(1024, SocketFlags.None), cts.Token),
         error => Console.WriteLine("Error: " + error.Message),
         () => Console.WriteLine("OnCompleted"),
