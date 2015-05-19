@@ -74,7 +74,6 @@ endpoint.ToListenerObservable(10)
     .Subscribe(
         client =>
             client.ToClientObservable(1024, SocketFlags.None)
-                .SubscribeOn(TaskPoolScheduler.Default)
                 .Subscribe(client.ToClientObserver(1024, SocketFlags.None), cts.Token),
         error => Console.WriteLine("Error: " + error.Message),
         () => Console.WriteLine("OnCompleted"),
