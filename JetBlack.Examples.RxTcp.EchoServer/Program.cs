@@ -14,7 +14,6 @@ namespace JetBlack.Examples.RxTcp.EchoServer
             var endpoint = ProgramArgs.Parse(args, new[] { "127.0.0.1:9211" }).EndPoint;
 
             var cts = new CancellationTokenSource();
-            var scheduler = new EventLoopScheduler();
 
             endpoint.ToListenerObservable(10)
                 .ObserveOn(TaskPoolScheduler.Default)
