@@ -22,7 +22,8 @@ The `DisposableBuffer` has been replaced by a generic wrapper class
 `DisposableValue`.
 
 I hope these changes don't screw things up for people. I think this solution is
-neater, and more sympathetic to the underlying classes.
+neater, and more sympathetic to the underlying classes. I do like to delete
+code whenever possible!
 
 ## Description
 
