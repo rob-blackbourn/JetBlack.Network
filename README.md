@@ -9,6 +9,21 @@ Four versions are implemented:
 3.  Use [`Socket`](https://msdn.microsoft.com/library/system.net.sockets.socket.aspx) as the driving class providing asynchronous methods for listen, connect, send and receive.
 4.  Use [`Socket`](https://msdn.microsoft.com/library/system.net.sockets.socket.aspx) as the driving class with non-blocking sockets and a select loop.
 
+## News
+
+### 2015-09-04
+
+I have folded in the changes I made while using these classes. The major change
+is that the `ByteBuffer` has been replaced by `System.ArraySegment<byte>`
+which has effectively the same functionality. This means I can use the methods
+on `Socket` which take `IList<ArraySegment<byte>>`, and delete a class! 
+
+The `DisposableBuffer` has been replaced by a generic wrapper class
+`DisposableValue`.
+
+I hope these changes don't screw things up for people. I think this solution is
+neater, and more sympathetic to the underlying classes.
+
 ## Description
 
 ### Listening
