@@ -12,15 +12,14 @@ namespace JetBlack.Network.RxSocket
 {
     public static class FrameClientExtensions
     {
-
-        public static ISubject<DisposableByteBuffer, DisposableByteBuffer> ToFrameClientSubject(this Socket socket, SocketFlags socketFlags, BufferManager bufferManager, CancellationToken token)
+        public static ISubject<DisposableValue<ArraySegment<byte>>, DisposableValue<ArraySegment<byte>>> ToFrameClientSubject(this Socket socket, SocketFlags socketFlags, BufferManager bufferManager, CancellationToken token)
         {
             return Subject.Create(socket.ToFrameClientObserver(socketFlags, token), socket.ToFrameClientObservable(socketFlags, bufferManager));
         }
 
-        public static IObservable<DisposableByteBuffer> ToFrameClientObservable(this Socket socket, SocketFlags socketFlags, BufferManager bufferManager)
+        public static IObservable<DisposableValue<ArraySegment<byte>>> ToFrameClientObservable(this Socket socket, SocketFlags socketFlags, BufferManager bufferManager)
         {
-            return Observable.Create<DisposableByteBuffer>(async (observer, token) =>
+            return Observable.Create<DisposableValue<ArraySegment<byte>>>(async (observer, token) =>
             {
                 var headerBuffer = new byte[sizeof(int)];
 
@@ -36,7 +35,9 @@ namespace JetBlack.Network.RxSocket
                         if (await socket.ReceiveCompletelyAsync(buffer, length, socketFlags, token) != length)
                             break;
 
-                        observer.OnNext(new DisposableByteBuffer(buffer, length, Disposable.Create(() => bufferManager.ReturnBuffer(buffer))));
+                        observer.OnNext(
+                            new DisposableValue<ArraySegment<byte>>(new ArraySegment<byte>(buffer, 0, length),
+                                Disposable.Create(() => bufferManager.ReturnBuffer(buffer))));
                     }
 
                     observer.OnCompleted();
@@ -50,13 +51,19 @@ namespace JetBlack.Network.RxSocket
             });
         }
 
-        public static IObserver<DisposableByteBuffer> ToFrameClientObserver(this Socket socket, SocketFlags socketFlags, CancellationToken token)
+        public static IObserver<DisposableValue<ArraySegment<byte>>> ToFrameClientObserver(this Socket socket, SocketFlags socketFlags, CancellationToken token)
         {
-            return Observer.Create<DisposableByteBuffer>(async managedBuffer =>
+            return Observer.Create<DisposableValue<ArraySegment<byte>>>(async managedBuffer =>
             {
-                var headerBuffer = BitConverter.GetBytes(managedBuffer.Length);
-                await socket.SendCompletelyAsync(headerBuffer, headerBuffer.Length, socketFlags, token);
-                await socket.SendCompletelyAsync(managedBuffer.Bytes, managedBuffer.Length, socketFlags, token);
+                var headerBuffer = BitConverter.GetBytes(managedBuffer.Value.Count);
+                await socket.SendCompletelyAsync(
+                    new[]
+                    {
+                        new ArraySegment<byte>(headerBuffer, 0, headerBuffer.Length),
+                        new ArraySegment<byte>(managedBuffer.Value.Array, 0, managedBuffer.Value.Count)
+                    },
+                    SocketFlags.None,
+                    token);
             });
         }
     }

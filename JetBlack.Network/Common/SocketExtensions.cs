@@ -1,4 +1,7 @@
-﻿using System.Net;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,6 +23,11 @@ namespace JetBlack.Network.Common
         public static async Task<int> SendAsync(this Socket socket, byte[] buffer, int offset, int size, SocketFlags flags)
         {
             return await Task<int>.Factory.FromAsync((callback, state) => socket.BeginSend(buffer, offset, size, flags, callback, state), ias => socket.EndSend(ias), null);
+        }
+
+        public static async Task<int> SendAsync(this Socket socket, IList<ArraySegment<byte>> buffers, SocketFlags flags)
+        {
+            return await Task<int>.Factory.FromAsync((callback, state) => socket.BeginSend(buffers, flags, callback, state), ias => socket.EndSend(ias), null);
         }
 
         public static async Task<int> ReceiveAsync(this Socket socket, byte[] buffer, int offset, int size, SocketFlags socketFlags)
@@ -51,6 +59,22 @@ namespace JetBlack.Network.Common
                 token.ThrowIfCancellationRequested();
 
                 var bytes = await socket.SendAsync(buffer, sent, size - sent, socketFlags);
+                if (bytes == 0)
+                    break;
+                sent += bytes;
+            }
+            return sent;
+        }
+
+        public static async Task<int> SendCompletelyAsync(this Socket socket, IList<ArraySegment<byte>> buffers, SocketFlags socketFlags, CancellationToken token)
+        {
+            var size = buffers.Sum(x => x.Count);
+            var sent = 0;
+            while (sent < size)
+            {
+                token.ThrowIfCancellationRequested();
+
+                var bytes = await socket.SendAsync(buffers, socketFlags);
                 if (bytes == 0)
                     break;
                 sent += bytes;
