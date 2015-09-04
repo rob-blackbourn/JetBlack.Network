@@ -369,7 +369,7 @@ public struct DisposableValue<T> : IDisposable, IEquatable<DisposableValue<T>>
 The frame clients simply delegate the behaviour to their streams.
 
 ```cs
-public static ISubject<DisposableByteBuffer, DisposableValue<ArraySegment<byte>>> ToFrameClientSubject(this TcpClient client, BufferManager bufferManager, CancellationToken token)
+public static ISubject<DisposableValue<ArraySegment<byte>>, DisposableValue<ArraySegment<byte>>> ToFrameClientSubject(this TcpClient client, BufferManager bufferManager, CancellationToken token)
 {
     return Subject.Create(client.ToFrameClientObserver(token), client.ToFrameClientObservable(bufferManager));
 }
