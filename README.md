@@ -29,8 +29,10 @@ The `10` is the backlog.
 
 ### Clients
 
-Clients read with an `IObservable<ByteBuffer>` and write with an `IObserver<ByteBuffer>` and are created by
-extension methods which take a [`Socket`](https://msdn.microsoft.com/library/system.net.sockets.socket.aspx) or [`TcpClient`](https://msdn.microsoft.com/library/system.net.sockets.tcpclient.aspx). There is also an `ISubject<ByteBuffer, ByteBuffer>` for
+Clients read with an `IObservable<ArraySegment<byte>>` and write with an `IObserver<ArraySegment<byte>>` and are created by
+extension methods which take a [`Socket`](https://msdn.microsoft.com/library/system.net.sockets.socket.aspx)
+or [`TcpClient`](https://msdn.microsoft.com/library/system.net.sockets.tcpclient.aspx).
+There is also an `ISubject<ArraySegment<byte>, ArraySegment<byte>>` for
 reading and writing with the same object. So you might do the following:
 
 ```cs
@@ -38,13 +40,15 @@ socket.ToClientObservable(1024)
     .Subscribe(buffer => DoSomething(buffer));
 ```
 
-The `ByteBuffer` class has a buffer and a length (the buffer may not be full). The `1024` argument was the size
+The `ArraySegment<byte>` class has a buffer and a length (the buffer may not be full). The `1024` argument was the size
 of the buffer to create. typically the extension method will also take a [`CancellationToken`](https://msdn.microsoft.com/library/system.threading.cancellationtoken.aspx) as an argument.
 
 ### Frame Clients
 
-Frame Clients follow the same pattern to the clients, but use a [`DisposableByteBuffer`](https://github.com/rob-blackbourn/JetBlack.Network/blob/master/JetBlack.Network/Common/DisposableByteBuffer.cs) and send/receive the length
-of the buffer. This ensures the full message is received. They also take a [`BufferManager`](https://msdn.microsoft.com/library/system.servicemodel.channels.buffermanager.aspx) to reduce garbage collection.
+Frame Clients follow the same pattern to the clients, but use a [`DisposableValue<ArraySegment<byte>>`](https://github.com/rob-blackbourn/JetBlack.Network/blob/master/JetBlack.Network/Common/DisposableValue.cs)
+and send/receive the length of the buffer. This ensures the full message is
+received. They also take a [`BufferManager`](https://msdn.microsoft.com/library/system.servicemodel.channels.buffermanager.aspx)
+to reduce garbage collection.
 
 ## Connectors
 
@@ -99,10 +103,10 @@ var observerDisposable =
     frameClientSubject
         .ObserveOn(TaskPoolScheduler.Default)
         .Subscribe(
-            managedBuffer =>
+            disposableBuffer =>
             {
-                Console.WriteLine("Read: " + Encoding.UTF8.GetString(managedBuffer.Bytes, 0, managedBuffer.Length));
-                managedBuffer.Dispose();
+                Console.WriteLine("Read: " + Encoding.UTF8.GetString(disposableBuffer.Value.Array, 0, disposableBuffer.Value.Count));
+                disposableBuffer.Dispose();
             },
             error => Console.WriteLine("Error: " + error.Message),
             () => Console.WriteLine("OnCompleted: FrameReceiver"));
@@ -112,7 +116,7 @@ Console.In.ToLineObservable()
         line =>
         {
             var writeBuffer = Encoding.UTF8.GetBytes(line);
-            frameClientSubject.OnNext(new DisposableByteBuffer(writeBuffer, writeBuffer.Length, Disposable.Empty));
+            frameClientSubject.OnNext(DisposableValue.Create(new ArraySegment<byte>(writeBuffer, 0, writeBuffer.Length), Disposable.Empty));
         },
         error => Console.WriteLine("Error: " + error.Message),
         () => Console.WriteLine("OnCompleted: LineReader"));
@@ -128,9 +132,12 @@ cts.Cancel();
 
 #### Listening
 
-This implementation is the most straightforward. The [`TcpListener`](https://msdn.microsoft.com/library/system.net.sockets.tcplistener.aspx) and [`TcpClient`](https://msdn.microsoft.com/library/system.net.sockets.tcpclient.aspx) classes have
-asynchronous methods which can be used with `await` when connecting and listening. The provide
-a [`NetworkStream`](https://msdn.microsoft.com/library/system.net.sockets.networkstream.aspx) which implement asynchronous methods declared by [`Stream`](https://msdn.microsoft.com/library/system.io.stream.aspx).
+This implementation is the most straightforward. The [`TcpListener`](https://msdn.microsoft.com/library/system.net.sockets.tcplistener.aspx)
+and [`TcpClient`](https://msdn.microsoft.com/library/system.net.sockets.tcpclient.aspx)
+classes have asynchronous methods which can be used with `await` when
+connecting and listening. The provide a
+[`NetworkStream`](https://msdn.microsoft.com/library/system.net.sockets.networkstream.aspx)
+which implement asynchronous methods declared by [`Stream`](https://msdn.microsoft.com/library/system.io.stream.aspx).
 
 The listen is implemented in the following manner:
 
@@ -204,37 +211,23 @@ I have implemented two readers and writers. One for bytes, and another for
 received they may be fragmented (split into separate blocks).
 
 It is often more efficient to manage the byte arrays in a pool. When we do
-this the buffers may be larger than the payload, so I use a trivial class
-called [`ByteBuffer`](https://github.com/rob-blackbourn/JetBlack.Network/blob/master/JetBlack.Network/Common/ByteBuffer.cs) to hold the byte array and payload length.
-
-```cs
-public class ByteBuffer
-{
-    public ByteBuffer(byte[] bytes, int length)
-    {
-        Bytes = bytes;
-        Length = length;
-    }
-
-    public byte[] Bytes { get; private set; }
-    public int Length { get; private set; }
-}
-```
+this the buffers may be larger than the payload, so I use `ArraySegment<byte>`
+to hold the byte array and payload length.
 
 The clients are thin wrappers around the streams:
 
 ```cs
-public static ISubject<ByteBuffer, ByteBuffer> ToClientSubject(this TcpClient client, int size, CancellationToken token)
+public static ISubject<ArraySegment<byte>, ArraySegment<byte>> ToClientSubject(this TcpClient client, int size, CancellationToken token)
 {
     return Subject.Create(client.ToClientObserver(token), client.ToClientObservable(size));
 }
 
-public static IObservable<ByteBuffer> ToClientObservable(this TcpClient client, int size)
+public static IObservable<ArraySegment<byte>> ToClientObservable(this TcpClient client, int size)
 {
     return client.GetStream().ToStreamObservable(size);
 }
 
-public static IObserver<ByteBuffer> ToClientObserver(this TcpClient client, CancellationToken token)
+public static IObserver<ArraySegment<byte>> ToClientObserver(this TcpClient client, CancellationToken token)
 {
     return client.GetStream().ToStreamObserver(token);
 }
@@ -244,11 +237,11 @@ The stream observer (writer) is the most straightforward as the write method
 guarantees to send the entire buffer.
 
 ```cs
-public static IObserver<ByteBuffer> ToStreamObserver(this Stream stream, CancellationToken token)
+public static IObserver<ArraySegment<byte>> ToStreamObserver(this Stream stream, CancellationToken token)
 {
-    return Observer.Create<ByteBuffer>(async buffer =>
+    return Observer.Create<ArraySegment<byte>>(async buffer =>
     {
-        await stream.WriteAsync(buffer.Bytes, 0, buffer.Length, token);
+        await stream.WriteAsync(buffer.Array, buffer.Offset, buffer.Count, token);
     });
 }
 ```
@@ -256,9 +249,9 @@ public static IObserver<ByteBuffer> ToStreamObserver(this Stream stream, Cancell
 The stream observable follows a similar pattern to the previous observables.
 
 ```cs
-public static IObservable<ByteBuffer> ToStreamObservable(this Stream stream, int size)
+public static IObservable<ArraySegment<byte>> ToStreamObservable(this Stream stream, int size)
 {
-    return Observable.Create<ByteBuffer>(async (observer, token) =>
+    return Observable.Create<ArraySegment<byte>>(async (observer, token) =>
     {
         var buffer = new byte[size];
 
@@ -270,7 +263,7 @@ public static IObservable<ByteBuffer> ToStreamObservable(this Stream stream, int
                 if (received == 0)
                     break;
 
-                observer.OnNext(new ByteBuffer(buffer, received));
+                observer.OnNext(new ArraySegment<byte>(buffer, 0, received));
             }
 
             observer.OnCompleted();
@@ -313,24 +306,62 @@ The frame clients manage fragmentation by sending/receiving the length of the
 byte array, before sending the array itself. Because what is read or written is
 now of indeterminate length I use managed buffers. With managed buffers there
 must be a mechanism to return the buffer to the pool. To achieve this we use a
-disposable buffer.
+disposable wrapper around the buffer.
 
 ```cs
-public class DisposableByteBuffer : ByteBuffer, IDisposable
+// Factory
+public static class DisposableValue
 {
-    private readonly IDisposable _disposable;
-
-    public DisposableByteBuffer(byte[] bytes, int length, IDisposable disposable)
-        : base(bytes, length)
+    public static DisposableValue<T> Create<T>(T value, IDisposable disposable)
     {
-        if (disposable == null)
-            throw new ArgumentNullException("disposable");
+        return new DisposableValue<T>(value, disposable);
+    }
+}
+
+public struct DisposableValue<T> : IDisposable, IEquatable<DisposableValue<T>>
+{
+    private IDisposable _disposable;
+
+    public static readonly DisposableValue<T> Empty;
+        
+    public DisposableValue(T value, IDisposable disposable) : this()
+    {
+        Value = value;
         _disposable = disposable;
+    }
+
+    public T Value { get; private set; }
+
+    public override int GetHashCode()
+    {
+        return Equals(Value, default(T)) ? 0 : Value.GetHashCode();
+    }
+
+    public override bool Equals(object obj)
+    {
+        return obj is DisposableValue<T> && Equals((DisposableValue<T>)obj);
+    }
+
+    public bool Equals(DisposableValue<T> other)
+    {
+        return Equals(Value, other.Value) && Equals(_disposable, other._disposable);
+    }
+
+    public static bool operator ==(DisposableValue<T> a, DisposableValue<T> b)
+    {
+        return a.Equals(b);
+    }
+
+    public static bool operator !=(DisposableValue<T> a, DisposableValue<T> b)
+    {
+        return !a.Equals(b);
     }
 
     public void Dispose()
     {
-        _disposable.Dispose();
+        IDisposable disposable = Interlocked.CompareExchange<IDisposable>(ref _disposable, null, _disposable);
+        if (disposable != null)
+            disposable.Dispose();
     }
 }
 ```
@@ -338,17 +369,17 @@ public class DisposableByteBuffer : ByteBuffer, IDisposable
 The frame clients simply delegate the behaviour to their streams.
 
 ```cs
-public static ISubject<DisposableByteBuffer, DisposableByteBuffer> ToFrameClientSubject(this TcpClient client, BufferManager bufferManager, CancellationToken token)
+public static ISubject<DisposableByteBuffer, DisposableValue<ArraySegment<byte>>> ToFrameClientSubject(this TcpClient client, BufferManager bufferManager, CancellationToken token)
 {
     return Subject.Create(client.ToFrameClientObserver(token), client.ToFrameClientObservable(bufferManager));
 }
 
-public static IObservable<DisposableByteBuffer> ToFrameClientObservable(this TcpClient client, BufferManager bufferManager)
+public static IObservable<DisposableValue<ArraySegment<byte>>> ToFrameClientObservable(this TcpClient client, BufferManager bufferManager)
 {
     return client.GetStream().ToFrameStreamObservable(bufferManager);
 }
 
-public static IObserver<DisposableByteBuffer> ToFrameClientObserver(this TcpClient client, CancellationToken token)
+public static IObserver<DisposableValue<ArraySegment<byte>>> ToFrameClientObserver(this TcpClient client, CancellationToken token)
 {
     return client.GetStream().ToFrameStreamObserver(token);
 }
@@ -357,13 +388,13 @@ public static IObserver<DisposableByteBuffer> ToFrameClientObserver(this TcpClie
 The observer is straightforward.
 
 ```cs
-public static IObserver<DisposableByteBuffer> ToFrameStreamObserver(this Stream stream, CancellationToken token)
+public static IObserver<DisposableValue<ArraySegment<byte>>> ToFrameStreamObserver(this Stream stream, CancellationToken token)
 {
-    return Observer.Create<DisposableByteBuffer>(async managedBuffer =>
+    return Observer.Create<DisposableValue<ArraySegment<byte>>>(async disposableBuffer =>
     {
-        var headerBuffer = BitConverter.GetBytes(managedBuffer.Length);
+        var headerBuffer = BitConverter.GetBytes(disposableBuffer.Value.Count);
         await stream.WriteAsync(headerBuffer, 0, headerBuffer.Length, token);
-        await stream.WriteAsync(managedBuffer.Bytes, 0, managedBuffer.Length, token);
+        await stream.WriteAsync(disposableBuffer.Value.Array, 0, disposableBuffer.Value.Count, token);
     });
 }
 ```
@@ -397,9 +428,9 @@ control logic, so I return the actual length read.
 Finally the frame stream observable.
 
 ```cs
-public static IObservable<DisposableByteBuffer> ToFrameStreamObservable(this Stream stream, BufferManager bufferManager)
+public static IObservable<DisposableValue<ArraySegment<byte>>> ToFrameStreamObservable(this Stream stream, BufferManager bufferManager)
 {
-    return Observable.Create<DisposableByteBuffer>(async (observer, token) =>
+    return Observable.Create<DisposableValue<ArraySegment<byte>>>(async (observer, token) =>
     {
         var headerBuffer = new byte[sizeof(int)];
 
@@ -415,7 +446,7 @@ public static IObservable<DisposableByteBuffer> ToFrameStreamObservable(this Str
                 if (await stream.ReadBytesCompletelyAsync(buffer, length, token) != length)
                     break;
 
-                observer.OnNext(new DisposableByteBuffer(buffer, length, Disposable.Create(() => bufferManager.ReturnBuffer(buffer))));
+                observer.OnNext(DisposableValue.Create(new ArraySegment<byte>(buffer, 0, length), Disposable.Create(() => bufferManager.ReturnBuffer(buffer))));
             }
 
             observer.OnCompleted();
@@ -446,7 +477,7 @@ var observerDisposable =
         .Subscribe(
             disposableBuffer =>
             {
-                Console.WriteLine("Read: " + Encoding.UTF8.GetString(disposableBuffer.Bytes, 0, disposableBuffer.Length));
+                Console.WriteLine("Read: " + Encoding.UTF8.GetString(disposableBuffer.Value.Array, 0, disposableBuffer.Value.Count));
                 disposableBuffer.Dispose();
             },
             error => Console.WriteLine("Error: " + error.Message),

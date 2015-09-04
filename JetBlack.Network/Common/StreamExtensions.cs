@@ -11,9 +11,9 @@ namespace JetBlack.Network.Common
 {
     public static class StreamExtensions
     {
-        public static IObservable<ByteBuffer> ToStreamObservable(this Stream stream, int size)
+        public static IObservable<ArraySegment<byte>> ToStreamObservable(this Stream stream, int size)
         {
-            return Observable.Create<ByteBuffer>(async (observer, token) =>
+            return Observable.Create<ArraySegment<byte>>(async (observer, token) =>
             {
                 var buffer = new byte[size];
 
@@ -25,7 +25,7 @@ namespace JetBlack.Network.Common
                         if (received == 0)
                             break;
 
-                        observer.OnNext(new ByteBuffer(buffer, received));
+                        observer.OnNext(new ArraySegment<byte>(buffer, 0, received));
                     }
 
                     observer.OnCompleted();
@@ -37,17 +37,17 @@ namespace JetBlack.Network.Common
             });
         }
 
-        public static IObserver<ByteBuffer> ToStreamObserver(this Stream stream, CancellationToken token)
+        public static IObserver<ArraySegment<byte>> ToStreamObserver(this Stream stream, CancellationToken token)
         {
-            return Observer.Create<ByteBuffer>(async buffer =>
+            return Observer.Create<ArraySegment<byte>>(async buffer =>
             {
-                await stream.WriteAsync(buffer.Bytes, 0, buffer.Length, token);
+                await stream.WriteAsync(buffer.Array, buffer.Offset, buffer.Count, token);
             });
         }
 
-        public static IObservable<DisposableByteBuffer> ToFrameStreamObservable(this Stream stream, BufferManager bufferManager)
+        public static IObservable<DisposableValue<ArraySegment<byte>>> ToFrameStreamObservable(this Stream stream, BufferManager bufferManager)
         {
-            return Observable.Create<DisposableByteBuffer>(async (observer, token) =>
+            return Observable.Create<DisposableValue<ArraySegment<byte>>>(async (observer, token) =>
             {
                 var headerBuffer = new byte[sizeof(int)];
 
@@ -63,7 +63,7 @@ namespace JetBlack.Network.Common
                         if (await stream.ReadBytesCompletelyAsync(buffer, length, token) != length)
                             break;
 
-                        observer.OnNext(new DisposableByteBuffer(buffer, length, Disposable.Create(() => bufferManager.ReturnBuffer(buffer))));
+                        observer.OnNext(DisposableValue.Create(new ArraySegment<byte>(buffer, 0, length), Disposable.Create(() => bufferManager.ReturnBuffer(buffer))));
                     }
 
                     observer.OnCompleted();
@@ -75,13 +75,13 @@ namespace JetBlack.Network.Common
             });
         }
 
-        public static IObserver<DisposableByteBuffer> ToFrameStreamObserver(this Stream stream, CancellationToken token)
+        public static IObserver<DisposableValue<ArraySegment<byte>>> ToFrameStreamObserver(this Stream stream, CancellationToken token)
         {
-            return Observer.Create<DisposableByteBuffer>(async managedBuffer =>
+            return Observer.Create<DisposableValue<ArraySegment<byte>>>(async disposableBuffer =>
             {
-                var headerBuffer = BitConverter.GetBytes(managedBuffer.Length);
+                var headerBuffer = BitConverter.GetBytes(disposableBuffer.Value.Count);
                 await stream.WriteAsync(headerBuffer, 0, headerBuffer.Length, token);
-                await stream.WriteAsync(managedBuffer.Bytes, 0, managedBuffer.Length, token);
+                await stream.WriteAsync(disposableBuffer.Value.Array, 0, disposableBuffer.Value.Count, token);
             });
         }
 
@@ -100,5 +100,4 @@ namespace JetBlack.Network.Common
             return read;
         }
     }
-
 }

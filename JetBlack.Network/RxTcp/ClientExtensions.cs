@@ -8,17 +8,17 @@ namespace JetBlack.Network.RxTcp
 {
     public static class ClientExtensions
     {
-        public static ISubject<ByteBuffer, ByteBuffer> ToClientSubject(this TcpClient client, int size, CancellationToken token)
+        public static ISubject<ArraySegment<byte>, ArraySegment<byte>> ToClientSubject(this TcpClient client, int size, CancellationToken token)
         {
             return Subject.Create(client.ToClientObserver(token), client.ToClientObservable(size));
         }
 
-        public static IObservable<ByteBuffer> ToClientObservable(this TcpClient client, int size)
+        public static IObservable<ArraySegment<byte>> ToClientObservable(this TcpClient client, int size)
         {
             return client.GetStream().ToStreamObservable(size);
         }
 
-        public static IObserver<ByteBuffer> ToClientObserver(this TcpClient client, CancellationToken token)
+        public static IObserver<ArraySegment<byte>> ToClientObserver(this TcpClient client, CancellationToken token)
         {
             return client.GetStream().ToStreamObserver(token);
         }

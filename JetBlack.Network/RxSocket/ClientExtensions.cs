@@ -9,14 +9,14 @@ namespace JetBlack.Network.RxSocket
 {
     public static class ClientExtensions
     {
-        public static ISubject<ByteBuffer, ByteBuffer> ToClientSubject(this Socket socket, int size, SocketFlags socketFlags)
+        public static ISubject<ArraySegment<byte>, ArraySegment<byte>> ToClientSubject(this Socket socket, int size, SocketFlags socketFlags)
         {
             return Subject.Create(socket.ToClientObserver(size, socketFlags), socket.ToClientObservable(size, socketFlags));
         }
 
-        public static IObservable<ByteBuffer> ToClientObservable(this Socket socket, int size, SocketFlags socketFlags)
+        public static IObservable<ArraySegment<byte>> ToClientObservable(this Socket socket, int size, SocketFlags socketFlags)
         {
-            return Observable.Create<ByteBuffer>(async (observer, token) =>
+            return Observable.Create<ArraySegment<byte>>(async (observer, token) =>
             {
                 var buffer = new byte[size];
 
@@ -28,7 +28,7 @@ namespace JetBlack.Network.RxSocket
                         if (received == 0)
                             break;
 
-                        observer.OnNext(new ByteBuffer(buffer, received));
+                        observer.OnNext(new ArraySegment<byte>(buffer, 0, received));
                     }
 
                     observer.OnCompleted();
@@ -40,13 +40,13 @@ namespace JetBlack.Network.RxSocket
             });
         }
 
-        public static IObserver<ByteBuffer> ToClientObserver(this Socket socket, int size, SocketFlags socketFlags)
+        public static IObserver<ArraySegment<byte>> ToClientObserver(this Socket socket, int size, SocketFlags socketFlags)
         {
-            return Observer.Create<ByteBuffer>(async buffer =>
+            return Observer.Create<ArraySegment<byte>>(async buffer =>
             {
                 var sent = 0;
-                while (sent < buffer.Length)
-                    sent += await socket.SendAsync(buffer.Bytes, sent, buffer.Length - sent, socketFlags);
+                while (sent < buffer.Count)
+                    sent += await socket.SendAsync(buffer.Array, sent, buffer.Count - sent, socketFlags);
             });
         }
     }

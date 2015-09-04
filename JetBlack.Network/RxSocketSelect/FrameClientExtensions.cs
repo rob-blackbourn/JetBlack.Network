@@ -13,18 +13,18 @@ namespace JetBlack.Network.RxSocketSelect
 {
     public static class FrameClientExtensions
     {
-        public static ISubject<DisposableByteBuffer, DisposableByteBuffer> ToFrameClientSubject(this Socket socket, SocketFlags socketFlags, BufferManager bufferManager, Selector selector, CancellationToken token)
+        public static ISubject<DisposableValue<ArraySegment<byte>>, DisposableValue<ArraySegment<byte>>> ToFrameClientSubject(this Socket socket, SocketFlags socketFlags, BufferManager bufferManager, Selector selector, CancellationToken token)
         {
             return Subject.Create(socket.ToFrameClientObserver(socketFlags, selector, token), socket.ToFrameClientObservable(socketFlags, bufferManager, selector));
         }
 
-        public static IObserver<DisposableByteBuffer> ToFrameClientObserver(this Socket socket, SocketFlags socketFlags, Selector selector, CancellationToken token)
+        public static IObserver<DisposableValue<ArraySegment<byte>>> ToFrameClientObserver(this Socket socket, SocketFlags socketFlags, Selector selector, CancellationToken token)
         {
-            return Observer.Create<DisposableByteBuffer>(disposableBuffer =>
+            return Observer.Create<DisposableValue<ArraySegment<byte>>>(disposableBuffer =>
             {
-                var header = BitConverter.GetBytes(disposableBuffer.Length);
+                var header = BitConverter.GetBytes(disposableBuffer.Value.Count);
                 var headerState = new BufferState(header, 0, header.Length);
-                var contentState = new BufferState(disposableBuffer.Bytes, 0, disposableBuffer.Length);
+                var contentState = new BufferState(disposableBuffer.Value.Array, 0, disposableBuffer.Value.Count);
 
                 try
                 {
@@ -87,9 +87,9 @@ namespace JetBlack.Network.RxSocketSelect
             });
         }
 
-        public static IObservable<DisposableByteBuffer> ToFrameClientObservable(this Socket socket, SocketFlags socketFlags, BufferManager bufferManager, Selector selector)
+        public static IObservable<DisposableValue<ArraySegment<byte>>> ToFrameClientObservable(this Socket socket, SocketFlags socketFlags, BufferManager bufferManager, Selector selector)
         {
-            return Observable.Create<DisposableByteBuffer>(observer =>
+            return Observable.Create<DisposableValue<ArraySegment<byte>>>(observer =>
             {
                 var headerState = new BufferState(new byte[sizeof(int)], 0, sizeof(int));
                 var contentState = new BufferState(null, 0, -1);
@@ -120,7 +120,7 @@ namespace JetBlack.Network.RxSocketSelect
                             {
                                 var managedBuffer = contentState.Bytes;
                                 var length = contentState.Offset;
-                                observer.OnNext(new DisposableByteBuffer(managedBuffer, length, Disposable.Create(() => bufferManager.ReturnBuffer(managedBuffer))));
+                                observer.OnNext(DisposableValue.Create(new ArraySegment<byte>(managedBuffer, 0, length), Disposable.Create(() => bufferManager.ReturnBuffer(managedBuffer))));
 
                                 contentState.Bytes = null;
 

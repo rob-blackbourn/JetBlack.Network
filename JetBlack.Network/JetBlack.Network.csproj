@@ -46,8 +46,6 @@
     <Reference Include="System.ServiceModel" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Common\ByteBuffer.cs" />
-    <Compile Include="Common\DisposableByteBuffer.cs" />
     <Compile Include="Common\DisposableValue.cs" />
     <Compile Include="Common\SocketEx.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

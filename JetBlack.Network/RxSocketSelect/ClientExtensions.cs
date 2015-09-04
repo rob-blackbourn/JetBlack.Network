@@ -11,9 +11,9 @@ namespace JetBlack.Network.RxSocketSelect
 {
     public static class ClientExtensions
     {
-        public static IObservable<ByteBuffer> ToClientObservable(this Socket socket, int size, SocketFlags socketFlags, Selector selector)
+        public static IObservable<ArraySegment<byte>> ToClientObservable(this Socket socket, int size, SocketFlags socketFlags, Selector selector)
         {
-            return Observable.Create<ByteBuffer>(observer =>
+            return Observable.Create<ArraySegment<byte>>(observer =>
             {
                 var buffer = new byte[size];
 
@@ -27,7 +27,7 @@ namespace JetBlack.Network.RxSocketSelect
                         if (bytes == 0)
                             observer.OnCompleted();
                         else
-                            observer.OnNext(new ByteBuffer(buffer, bytes));
+                            observer.OnNext(new ArraySegment<byte>(buffer, 0, bytes));
                     }
                     catch (Exception error)
                     {
@@ -41,12 +41,12 @@ namespace JetBlack.Network.RxSocketSelect
             });
         }
 
-        public static IObserver<ByteBuffer> ToClientObserver(this Socket socket, SocketFlags socketFlags, Selector selector, CancellationToken token)
+        public static IObserver<ArraySegment<byte>> ToClientObserver(this Socket socket, SocketFlags socketFlags, Selector selector, CancellationToken token)
         {
-            return Observer.Create<ByteBuffer>(
+            return Observer.Create<ArraySegment<byte>>(
                 buffer =>
                 {
-                    var state = new BufferState(buffer.Bytes, 0, buffer.Length);
+                    var state = new BufferState(buffer.Array, 0, buffer.Count);
 
                     // Try to write as much as possible without registering a callback.
                     try

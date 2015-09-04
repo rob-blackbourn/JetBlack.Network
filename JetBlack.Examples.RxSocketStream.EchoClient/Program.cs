@@ -31,7 +31,7 @@ namespace JetBlack.Examples.RxSocketStream.EchoClient
                             .Subscribe(
                                 disposableBuffer =>
                                 {
-                                    Console.WriteLine("Read: " + Encoding.UTF8.GetString(disposableBuffer.Bytes, 0, disposableBuffer.Length));
+                                    Console.WriteLine("Read: " + Encoding.UTF8.GetString(disposableBuffer.Value.Array, 0, disposableBuffer.Value.Count));
                                     disposableBuffer.Dispose();
                                 },
                                 error => Console.WriteLine("Error: " + error.Message),
@@ -42,7 +42,7 @@ namespace JetBlack.Examples.RxSocketStream.EchoClient
                             line =>
                             {
                                 var writeBuffer = Encoding.UTF8.GetBytes(line);
-                                frameClientSubject.OnNext(new DisposableByteBuffer(writeBuffer, writeBuffer.Length, Disposable.Empty));
+                                frameClientSubject.OnNext(DisposableValue.Create(new ArraySegment<byte>(writeBuffer), Disposable.Empty));
                             },
                             error => Console.WriteLine("Error: " + error.Message),
                             () => Console.WriteLine("OnCompleted: LineReader"));

@@ -53,14 +53,14 @@ namespace JetBlack.Network.RxSocket
 
         public static IObserver<DisposableValue<ArraySegment<byte>>> ToFrameClientObserver(this Socket socket, SocketFlags socketFlags, CancellationToken token)
         {
-            return Observer.Create<DisposableValue<ArraySegment<byte>>>(async managedBuffer =>
+            return Observer.Create<DisposableValue<ArraySegment<byte>>>(async disposableBuffer =>
             {
-                var headerBuffer = BitConverter.GetBytes(managedBuffer.Value.Count);
+                var headerBuffer = BitConverter.GetBytes(disposableBuffer.Value.Count);
                 await socket.SendCompletelyAsync(
                     new[]
                     {
                         new ArraySegment<byte>(headerBuffer, 0, headerBuffer.Length),
-                        new ArraySegment<byte>(managedBuffer.Value.Array, 0, managedBuffer.Value.Count)
+                        new ArraySegment<byte>(disposableBuffer.Value.Array, 0, disposableBuffer.Value.Count)
                     },
                     SocketFlags.None,
                     token);
