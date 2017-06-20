@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Linq;
+using JetBlack.Network.Common;
 
 namespace JetBlack.Network.RxTcp
 {
@@ -21,15 +22,20 @@ namespace JetBlack.Network.RxTcp
                 try
                 {
                     while (!token.IsCancellationRequested)
-                        observer.OnNext(await listener.AcceptTcpClientAsync());
-
+                        observer.OnNext(await listener.AcceptTcpClientAsync()
+                        .WithCancellableWait(token));
+                }
+                catch (OperationCanceledException)
+                {
                     observer.OnCompleted();
-
-                    listener.Stop();
                 }
                 catch (Exception error)
                 {
                     observer.OnError(error);
+                }
+                finally
+                {
+                    listener.Stop();
                 }
             });
         }
