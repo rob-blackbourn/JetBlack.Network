@@ -24,15 +24,20 @@ namespace JetBlack.Network.RxSocket
                 try
                 {
                     while (!token.IsCancellationRequested)
-                        observer.OnNext(await socket.AcceptAsync());
-
+                        observer.OnNext(await socket.AcceptAsync()
+                        .WithCancellableWait(token));
+                }
+                catch (OperationCanceledException)
+                {
                     observer.OnCompleted();
-
-                    socket.Close();
                 }
                 catch (Exception error)
                 {
                     observer.OnError(error);
+                }
+                finally
+                {
+                    socket.Close();
                 }
             });
         }
